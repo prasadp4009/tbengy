@@ -33,7 +33,7 @@ import re
 import getpass
 from datetime import date
 
-from uvmTemplate import baseTest, makefileStr, rtlModule, sanityTest, tbModule, testPkg, xsimWaveTclStr
+from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, makefileStr, regsPkg, rtlModule, sanitySeq, sanityTest, seqItem, seqPkg, svIntf, tbModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon, uvmSb, uvmSeqr, xsimWaveTclStr
 
 moduleName = "na"
 username = getpass.getuser()
@@ -86,7 +86,23 @@ def mod_gen():
     "TB Top"        : ["tb", moduleName+"_tb.sv", tbModule, [moduleName.upper(), moduleName]],
     "Test Pkg"      : ["tests", moduleName+"_test_pkg.sv", testPkg, [moduleName.upper(), moduleName]],
     "Base Test"     : ["tests", moduleName+"_base_test.sv", baseTest, [moduleName.upper(), moduleName]],
-    "Sanity Test"   : ["tests", moduleName+"_sanity_test.sv", sanityTest, [moduleName.upper(), moduleName]]
+    "Sanity Test"   : ["tests", moduleName+"_sanity_test.sv", sanityTest, [moduleName.upper(), moduleName]],
+    "Env Pkg"       : ["env", moduleName+"_env_pkg.sv", envPkg, [moduleName.upper(), moduleName]],
+    "UVM Env"       : ["env", moduleName+"_env.sv", uvmEnv, [moduleName.upper(), moduleName]],
+    "UVM Cov"       : ["env", moduleName+"_cov.sv", uvmCov, [moduleName.upper(), moduleName]],
+    "UVM Sb"        : ["env", moduleName+"_sb.sv", uvmSb, [moduleName.upper(), moduleName]],
+    "Agent Pkg"     : ["agent", moduleName+"_agent_pkg.sv", agntPkg, [moduleName.upper(), moduleName]],
+    "Agent Cfg"     : ["agent", moduleName+"_agent_cfg.sv", agntCfg, [moduleName.upper(), moduleName]],
+    "UVM Agent"     : ["agent", moduleName+"_agent.sv", uvmAgnt, [moduleName.upper(), moduleName]],
+    "SV Intf"       : ["agent", moduleName+"_intf.sv", svIntf, [moduleName.upper(), moduleName]],
+    "UVM Drv"       : ["agent", moduleName+"_driver.sv", uvmDrv, [moduleName.upper(), moduleName]],
+    "UVM Mon"       : ["agent", moduleName+"_monitor.sv", uvmMon, [moduleName.upper(), moduleName]],
+    "UVM Seqr"      : ["agent", moduleName+"_sequencer.sv", uvmSeqr, [moduleName.upper(), moduleName]],
+    "Regs Pkg"      : ["regs", moduleName+"_regs_pkg.sv", regsPkg, [moduleName.upper(), moduleName]],
+    "Seq Pkg"       : ["sequence_lib", moduleName+"_seq_pkg.sv", seqPkg, [moduleName.upper(), moduleName]],
+    "Seq Item"      : ["sequence_lib", moduleName+"_seq_item.sv", seqItem, [moduleName.upper(), moduleName]],
+    "Base Seq"      : ["sequence_lib", moduleName+"_base_seq.sv", baseSeq, [moduleName.upper(), moduleName]],
+    "Sanity Seq"    : ["sequence_lib", moduleName+"_sanity_seq.sv", sanitySeq, [moduleName.upper(), moduleName]]
   }
   print ("Starting Generation of Testbench")
   genDirStruct(dirDict)

@@ -18,67 +18,99 @@ work = work
 top_tb_name = {2}_tb
 
 ifneq ("$(wildcard ../rtl)","") 
-RTL = ../rtl/*.sv 
 INCRTL = +incdir+../rtl 
 else 
-RTL = 
 INCRTL = 
 endif
 
+ifneq ("$(wildcard ../rtl/*.sv)","") 
+RTL = ../rtl/*.sv 
+else 
+RTL = 
+endif
+
 ifneq ("$(wildcard ../sim/tb)","") 
-TB = ../sim/tb/*.sv 
 INCTB = +incdir+../sim/tb 
 else 
-TB = 
 INCTB = 
 endif
 
+ifneq ("$(wildcard ../sim/tb/*.sv)","") 
+TB = ../sim/tb/*.sv 
+else 
+TB = 
+endif
+
 ifneq ("$(wildcard ../sim/env/agent)","") 
-INTF = ../sim/env/agent/*intf.sv
 INCINTF = +incdir+../sim/env/agent
 else 
-INTF = 
 INCINTF = 
 endif 
 
+ifneq ("$(wildcard ../sim/env/agent/*intf.sv)","") 
+INTF = ../sim/env/agent/*intf.sv
+else 
+INTF = 
+endif 
+
 ifneq ("$(wildcard ../sim/env/agent)","") 
-AGT = ../sim/env/agent/*pkg.sv
 INCAGT = +incdir+../sim/env/agent 
 else 
-AGT = 
 INCAGT = 
 endif 
 
+ifneq ("$(wildcard ../sim/env/agent/*pkg.sv)","") 
+AGT = ../sim/env/agent/*pkg.sv
+else 
+AGT = 
+endif 
+
 ifneq ("$(wildcard ../sim/env/agent/sequence_lib)","") 
-SEQ_LIB = ../sim/env/agent/sequence_lib/*pkg.sv
 INCSEQ_LIB = +incdir+../sim/env/agent/sequence_lib 
 else 
-SEQ_LIB = 
 INCSEQ_LIB = 
 endif
 
+ifneq ("$(wildcard ../sim/env/agent/sequence_lib/*pkg.sv)","") 
+SEQ_LIB = ../sim/env/agent/sequence_lib/*pkg.sv
+else 
+SEQ_LIB = 
+endif
+
 ifneq ("$(wildcard ../sim/env)","")
-ENV = ../env/*pkg.sv
 INCENV = +incdir+../sim/env
 else
-ENV =
 INCENV =
 endif
 
+ifneq ("$(wildcard ../sim/env/*pkg.sv)","")
+ENV = ../sim/env/*pkg.sv
+else
+ENV =
+endif
+
 ifneq ("$(wildcard ../sim/env/agent/regs)","")
-REG = ../sim/env/agent/regs/*pkg.sv
 INCREG = +incdir+../sim/env/agent/regs
 else
-REG =
 INCREG =
 endif
 
+ifneq ("$(wildcard ../sim/env/agent/regs/*pkg.sv)","")
+REG = ../sim/env/agent/regs/*pkg.sv
+else
+REG =
+endif
+
 ifneq ("$(wildcard ../sim/tests)","")
-TESTS = ../sim/tests/*pkg.sv
 INCTESTS = +incdir+../sim/tests
 else
-TESTS =
 INCTESTS =
+endif
+
+ifneq ("$(wildcard ../sim/tests/*pkg.sv)","")
+TESTS = ../sim/tests/*pkg.sv
+else
+TESTS =
 endif
 
 ifeq ($(OS),Windows_NT)
@@ -92,7 +124,7 @@ cmp:
 	xelab work.$(top_tb_name) -s $(top_tb_name)_sim -L uvm -timescale 1ns/1ps -debug all
 
 run_sim_wave:
-	xsim -wdb sim.wdb -log session.log -t logw.tcl $(top_tb_name)_sim
+	xsim -wdb sim.wdb -log session.log -t logw.tcl $(top_tb_name)_sim -testplusarg UVM_TESTNAME={2}_sanity_test
 	xsim sim.wdb -gui
 
 view_wave:
@@ -189,7 +221,7 @@ tbModule = """\
 
     logic clk;
 
-    //{1}_intf intf(.clk(clk));
+    {1}_intf intf(.clk(clk));
 
     initial begin
       clk = 0;
@@ -199,7 +231,7 @@ tbModule = """\
     end
 
     initial begin
-      //uvm_config_db #(virtual {1}_intf)::set(null, "*", "vintf", intf);
+      uvm_config_db #(virtual {1}_intf)::set(null, "*", "vintf", intf);
       run_test();
     end
   endmodule
@@ -217,10 +249,10 @@ testPkg = """\
 
     // Import UVM
     import uvm_pkg::*;
-    //import {1}_seq_pkg::*;
-    //import {1}_regs_pkg::*;
-    //import {1}_agent_pkg::*;
-    //import {1}_env_pkg::*;
+    import {1}_seq_pkg::*;
+    import {1}_regs_pkg::*;
+    import {1}_agent_pkg::*;
+    import {1}_env_pkg::*;
     `include "uvm_macros.svh"
 
     // Import UVC
@@ -244,7 +276,7 @@ baseTest = """\
     `uvm_component_utils({1}_base_test)
 
     // Declare UVC
-    // {1}_env envh;
+    {1}_env envh;
 
     extern function new(string name = "{1}_base_test", uvm_component parent=null);
     extern virtual function void build_phase(uvm_phase phase);
@@ -259,7 +291,7 @@ baseTest = """\
 
   function void {1}_base_test::build_phase(uvm_phase phase);
     super.build_phase(phase);
-    //envh = {1}_env::type_id::create("envh", this);
+    envh = {1}_env::type_id::create("envh", this);
   endfunction
 
   function void {1}_base_test::connect_phase(uvm_phase phase);
@@ -292,7 +324,7 @@ sanityTest = """\
     `uvm_component_utils({1}_sanity_test)
 
     // Sequence to start
-    // {1}_sanity_seq seqh;
+    {1}_sanity_seq seqh;
 
     extern function new(string name = "{1}_sanity_test", uvm_component parent=null);
     extern virtual function void build_phase(uvm_phase phase);
@@ -317,8 +349,8 @@ sanityTest = """\
     super.run_phase(phase);
     phase.raise_objection(this);
     `uvm_info(get_full_name(), "[{1}] Starting sanity Test", UVM_NONE)
-    //seqh = {1}_sanity_seq::type_id::create("seqh");
-    //seqh.start(envh.agnth.seqrh);
+    seqh = {1}_sanity_seq::type_id::create("seqh");
+    seqh.start(envh.agnth.seqrh);
     phase.drop_objection(this);
   endtask
 
@@ -329,4 +361,549 @@ sanityTest = """\
 `endif
 
 //End of {1}_sanity_test
+"""
+
+uvmEnv = """\
+`ifndef {0}_ENV__SV
+`define {0}_ENV__SV
+
+  class {1}_env extends uvm_env;
+
+    // Factory Registration
+    `uvm_component_utils({1}_env)
+
+    // Environment Variables
+    bit is_scoreboard_enable = 1;
+    bit is_coverage_enable = 1;
+
+    // Declare UVC
+    {1}_agent_cfg agnt_cfg;
+    {1}_agent agnth;
+    {1}_sb sbh;
+    {1}_cov covh;
+
+    extern function new (string name = "{1}_env", uvm_component parent = null);
+    extern virtual function void build_phase(uvm_phase phase);
+    extern virtual function void connect_phase(uvm_phase phase);
+  endclass
+
+  function {1}_env::new(string name = "{1}_env", uvm_component parent = null);
+    super.new(name, parent);
+  endfunction
+
+  function void {1}_env::build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    `uvm_info(get_full_name(), "[{0}] Starting Build Phase", UVM_LOW)
+    agnt_cfg = {1}_agent_cfg::type_id::create("agnt_cfg");
+    uvm_config_db #({1}_agent_cfg)::set(this, "*", "agnt_cfg", agnt_cfg);
+    agnth = {1}_agent::type_id::create("agnth", this);
+    if(is_scoreboard_enable) begin
+      sbh = {1}_sb::type_id::create("sbh", this);
+    end
+    if(is_coverage_enable) begin
+      covh = {1}_cov::type_id::create("covh", this);
+    end
+    `uvm_info(get_full_name(), "[{0}] Ending Build Phase", UVM_LOW)
+  endfunction
+
+  function void {1}_env::connect_phase(uvm_phase phase);
+    super.connect_phase(phase);
+    `uvm_info(get_full_name(), "[{0}] Starting Connect Phase", UVM_LOW)
+    if(is_scoreboard_enable) begin
+      agnth.monh.mon_port.connect(sbh.sb_fifo.analysis_export);
+    end
+    if(is_coverage_enable) begin
+      agnth.monh.mon_port.connect(covh.analysis_export);
+    end
+    `uvm_info(get_full_name(), "[{0}] Ending Connect Phase", UVM_LOW)
+  endfunction
+
+`endif
+
+//End of {1}_env
+"""
+
+envPkg = """\
+`ifndef {0}_ENV_PKG__SV
+`define {0}_ENV_PKG__SV
+
+  package {1}_env_pkg;
+
+    // Import UVM
+    import uvm_pkg::*;
+    import {1}_seq_pkg::*;
+    import {1}_regs_pkg::*;
+    import {1}_agent_pkg::*;
+    `include "uvm_macros.svh"
+
+    // Import UVM
+    `include "{1}_sb.sv"
+    `include "{1}_cov.sv"
+    `include "{1}_env.sv"
+  endpackage
+
+`endif
+
+//End of {1}_env_pkg
+"""
+
+uvmSb  = """\
+`ifndef {0}_SB__SV
+`define {0}_SB__SV
+
+  class {1}_sb extends uvm_scoreboard;
+
+    // Factory Registration
+    `uvm_component_utils({1}_sb)
+
+    // Analysis Fifo
+    uvm_tlm_analysis_fifo #({1}_seq_item) sb_fifo;
+
+    // Data Item
+    {1}_seq_item seq_item;
+
+    // Tasks and Functions
+    extern function new(string name = "{1}_sb", uvm_component parent = null);
+    extern virtual function void build_phase(uvm_phase phase);
+    extern virtual task run_phase(uvm_phase phase);
+  endclass
+
+  function {1}_sb::new(string name = "{1}_sb", uvm_component parent = null);
+    super.new(name, parent);
+  endfunction
+
+  function void {1}_sb::build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    sb_fifo = new("sb_fifo", this);
+  endfunction
+
+  task {1}_sb::run_phase(uvm_phase phase);
+    forever begin
+      sb_fifo.get(seq_item);
+      `uvm_info(get_full_name(), "[{0}] Received new item in SB", UVM_LOW)    
+    end
+  endtask
+
+`endif
+
+//End of {1}_sb
+"""
+
+uvmCov  = """\
+`ifndef {0}_COV__SV
+`define {0}_COV__SV
+
+  class {1}_cov extends uvm_subscriber#({1}_seq_item);
+    
+    // Factory Registration
+    `uvm_component_utils({1}_cov)
+
+    extern function new(string name = "{1}_cov", uvm_component parent = null);
+    extern virtual function void write({1}_seq_item t);
+  endclass
+
+  function {1}_cov::new(string name = "{1}_cov", uvm_component parent = null);
+    super.new(name, parent);
+  endfunction
+
+  function void {1}_cov::write({1}_seq_item t);
+    `uvm_info(get_full_name(), "[{0}] Received item in Subscriber", UVM_LOW)
+  endfunction
+
+`endif
+
+//End of {1}_cov
+"""
+
+agntPkg = """\
+`ifndef {0}_AGENT_PKG__SV
+`define {0}_AGENT_PKG__SV
+
+  package {1}_agent_pkg;
+
+    // Import UVM
+    import uvm_pkg::*;
+    import {1}_regs_pkg::*;
+    import {1}_seq_pkg::*;
+    `include "uvm_macros.svh"
+
+    // Include Agent UVCs
+    // `include "{1}_intf.sv"
+    `include "{1}_agent_cfg.sv"
+    `include "{1}_driver.sv"
+    `include "{1}_monitor.sv"
+    `include "{1}_sequencer.sv"
+    `include "{1}_agent.sv"
+  endpackage
+
+`endif
+
+//End of {1}_agent_pkg
+"""
+
+uvmAgnt = """\
+`ifndef {0}_AGENT__SV
+`define {0}_AGENT__SV
+
+  class {1}_agent extends uvm_agent;
+
+    // Factory Registration
+    `uvm_component_utils({1}_agent)
+
+    // Agent config
+    {1}_agent_cfg agnt_cfg;
+
+    // UVCs
+    {1}_driver     drvh;
+    {1}_monitor    monh;
+    {1}_sequencer  seqrh;
+
+    // Tasks and Functions
+    extern function new(string name = "{1}_agent", uvm_component parent = null);
+    extern virtual function void build_phase(uvm_phase phase);
+    extern virtual function void connect_phase(uvm_phase phase);
+    // extern virtual task run_phase(uvm_phase);
+  endclass
+
+  function {1}_agent::new(string name = "{1}_agent", uvm_component parent = null);
+    super.new(name, parent);
+  endfunction
+
+  function void {1}_agent::build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    `uvm_info(get_full_name(), "[{0}] Starting Build Phase", UVM_LOW)
+    
+    // agnt_cfg = {1}_agent_cfg::type_id::create("agnt_cfg");
+    if(!uvm_config_db#({1}_agent_cfg)::get(this, "", "agnt_cfg", agnt_cfg)) begin
+      `uvm_fatal(get_type_name(), "[{0}] Couldn't get agnt_cfg, did you set it?")
+    end
+
+    // Build UVC
+    monh = {1}_monitor::type_id::create("monh", this);
+    if(agnt_cfg.is_active == UVM_ACTIVE) begin
+      drvh = {1}_driver::type_id::create("drvh", this);
+      seqrh = {1}_sequencer::type_id::create("seqrh", this);
+    end
+    `uvm_info(get_full_name(), "[{0}] Ending Build Phase", UVM_LOW)
+  endfunction
+
+  function void {1}_agent::connect_phase(uvm_phase phase);
+    super.connect_phase(phase);
+    `uvm_info(get_full_name(), "[{0}] Starting Connect Phase", UVM_LOW)
+    if(agnt_cfg.is_active == UVM_ACTIVE) begin
+      drvh.seq_item_port.connect(seqrh.seq_item_export);
+    end
+    `uvm_info(get_full_name(), "[{0}] Ending Connect Phase", UVM_LOW)
+  endfunction
+
+`endif
+
+//End of {1}_agent
+"""
+
+agntCfg = """\
+`ifndef {0}_AGENT_CFG__SV
+`define {0}_AGENT_CFG__SV
+
+  class {1}_agent_cfg extends uvm_object;
+
+    // Factory Registration
+    `uvm_object_utils({1}_agent_cfg)
+
+    // UVM Agent Controls
+
+    uvm_active_passive_enum is_active = UVM_ACTIVE;
+
+    // Tasks and Functions
+
+    extern function new(string name = "{1}_agent_cfg");
+
+  endclass
+
+  function {1}_agent_cfg::new(string name = "{1}_agent_cfg");
+    super.new(name);
+  endfunction
+
+`endif
+
+//End of {1}_agent_cfg
+"""
+
+svIntf = """\
+`ifndef {0}_INTF__SV
+`define {0}_INTF__SV
+
+  interface {1}_intf(input clk);
+
+    // Signals
+    logic we;
+    logic [3:0] addr;
+    logic [7:0] wdata;
+    logic [7:0] rdata;
+    
+  endinterface
+
+`endif
+
+//End of {1}_intf
+"""
+
+uvmDrv = """\
+`ifndef {0}_DRIVER__SV
+`define {0}_DRIVER__SV
+
+  class {1}_driver extends uvm_driver #({1}_seq_item);
+
+    // Factory Registeration
+    `uvm_component_utils({1}_driver)
+
+    // Virtual Interface
+    virtual {1}_intf vintf;
+
+    // Tasks and Functions
+    extern function new(string name = "{1}_driver", uvm_component parent = null);
+    extern virtual function void build_phase(uvm_phase phase);
+    // extern virtual function void connect_phase(uvm_phase phase);
+    extern virtual task run_phase(uvm_phase phase);
+    extern virtual task drive_task({1}_seq_item seq_item);
+  endclass
+
+  function {1}_driver::new(string name = "{1}_driver", uvm_component parent = null);
+    super.new(name, parent);
+  endfunction
+
+  function void {1}_driver::build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    if(!uvm_config_db#(virtual {1}_intf)::get(this, "", "vintf", vintf)) begin
+      `uvm_fatal(get_type_name(),"[{0}] Couldn't get vintf, did you set it?")
+    end
+  endfunction
+
+  task {1}_driver::drive_task({1}_seq_item seq_item);
+    `uvm_info(get_full_name(), "[{0}] Received Sequence Item in Driver", UVM_LOW)
+    
+    // @(vintf.clk);
+    #10;
+  endtask
+
+  task {1}_driver::run_phase(uvm_phase phase);
+    // super.run_phase(phase);
+    forever begin
+      seq_item_port.get_next_item(req);
+      drive_task(req);
+      seq_item_port.item_done();
+    end
+  endtask
+
+`endif
+
+//End of {1}_driver
+"""
+
+uvmMon = """\
+`ifndef {0}_MONITOR__SV
+`define {0}_MONITOR__SV
+
+  class {1}_monitor extends uvm_monitor;
+
+    // Factory Registration
+    `uvm_component_utils({1}_monitor)
+
+    // Interface
+    virtual {1}_intf vintf;
+
+    // Analysis Port
+    uvm_analysis_port #({1}_seq_item) mon_port;
+
+    // Tasks and Functions
+
+    extern function new(string name = "{1}_monitor", uvm_component parent = null);
+    extern virtual function void build_phase(uvm_phase phase);
+    // extern virtual function void connect_phase(uvm_phase phase);
+    extern virtual task run_phase(uvm_phase phase);
+    extern virtual task mon_task();
+    
+  endclass
+
+  function {1}_monitor::new(string name = "{1}_monitor", uvm_component parent = null);
+    super.new(name, parent);
+  endfunction
+
+  function void {1}_monitor::build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    if(!uvm_config_db#(virtual {1}_intf)::get(this, "", "vintf", vintf)) begin
+      `uvm_fatal(get_type_name(), "[{0}] Couldn't get vintf, did you set it?")
+    end
+    mon_port = new("mon_port", this);
+  endfunction
+
+  task {1}_monitor::run_phase(uvm_phase phase);
+    super.run_phase(phase);
+    mon_task();
+  endtask
+
+  task {1}_monitor::mon_task();
+    {1}_seq_item {1}_seq_item_h;
+    {1}_seq_item_h = {1}_seq_item::type_id::create("{1}_seq_item_h");
+    forever begin
+      // @(vintf.clk);
+      #10;
+      mon_port.write({1}_seq_item_h);
+      `uvm_info(get_full_name(), "[{0}] Written Sequence Item from Monitor", UVM_LOW)
+    end
+  endtask
+
+`endif
+
+//End of {1}_monitor
+"""
+
+uvmSeqr = """\
+`ifndef {0}_SEQUENCER__SV
+`define {0}_SEQUENCER__SV
+
+  class {1}_sequencer extends uvm_sequencer#({1}_seq_item);
+
+    // Factory Registration
+    `uvm_component_utils({1}_sequencer)
+
+    // Tasks and Functions
+    extern function new(string name = "{1}_sequencer", uvm_component parent = null);
+  endclass
+
+  function {1}_sequencer::new(string name = "{1}_sequencer", uvm_component parent = null);
+    super.new(name, parent);
+  endfunction
+
+`endif
+
+//End of {1}_sequencer
+"""
+
+seqPkg = """\
+`ifndef {0}_SEQ_PKG__SV
+`define {0}_SEQ_PKG__SV
+
+  package {1}_seq_pkg;
+
+    // Import UVM Macros and Package
+    import uvm_pkg::*;
+    `include "uvm_macros.svh"
+
+    // Include all sequence items and sequences
+    `include "{1}_seq_item.sv"
+    `include "{1}_base_seq.sv"
+    `include "{1}_sanity_seq.sv"
+
+  endpackage
+
+`endif
+
+//End of {1}_seq_pkg
+"""
+
+baseSeq = """\
+`ifndef {0}_BASE_SEQ__SV
+`define {0}_BASE_SEQ__SV
+
+  class {1}_base_seq extends uvm_sequence#({1}_seq_item);
+
+    // Factory Registration
+    `uvm_object_utils({1}_base_seq)
+
+    // Variables
+
+    // Tasks and Functions
+    extern function new(string name = "{1}_base_seq");
+    extern virtual task body();
+
+  endclass
+
+  function {1}_base_seq::new(string name = "{1}_base_seq");
+    super.new(name);
+  endfunction
+
+  task {1}_base_seq::body();
+    
+  endtask
+
+`endif
+
+//End of {1}_base_seq
+"""
+
+sanitySeq = """\
+`ifndef {0}_SANITY_SEQ__SV
+`define {0}_SANITY_SEQ__SV
+
+  class {1}_sanity_seq extends {1}_base_seq;
+
+    // Factory Registration
+    `uvm_object_utils({1}_sanity_seq)
+
+    // Variables
+
+    // Tasks and Functions
+
+    extern function new(string name = "{1}_sanity_seq");
+    extern virtual task body();
+  endclass
+
+  function {1}_sanity_seq::new(string name = "{1}_sanity_seq");
+    super.new(name);
+  endfunction
+
+  task {1}_sanity_seq::body();
+    super.body();
+    `uvm_info(get_full_name(), "[{0}] Starting Sanity Sequence", UVM_LOW)
+    `uvm_do(req)
+    // wait_for_item_done();
+  endtask
+
+`endif
+
+//End of {1}_sanity_seq
+"""
+
+seqItem = """\
+`ifndef {0}_SEQ_ITEM__SV
+`define {0}_SEQ_ITEM__SV
+
+  class {1}_seq_item extends uvm_sequence_item;
+
+    // Factory Registration
+    `uvm_object_utils({1}_seq_item)
+
+    // Randomization Variables
+
+    extern function new(string name = "{1}_seq_item");
+    
+  endclass
+
+  function {1}_seq_item::new(string name = "{1}_seq_item");
+    super.new(name);
+  endfunction
+
+`endif
+
+//End of {1}_seq_item
+"""
+
+regsPkg = """\
+`ifndef {0}_REGS_PKG__SV
+`define {0}_REGS_PKG__SV
+
+  package {1}_regs_pkg;
+
+    // Import UVM
+    import uvm_pkg::*;
+    `include "uvm_macros.svh"
+
+    // Include Reg Model UVCs
+
+  endpackage
+
+`endif
+
+//End of {1}_regs_pkg
 """
