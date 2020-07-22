@@ -907,3 +907,72 @@ regsPkg = """\
 
 //End of {1}_regs_pkg
 """
+
+readmeMD = """\
+## {0} Architecture, Design and Verification Details
+
+### Commands to run sanity test
+#### Without Wave Dump
+```bash
+cd scripts
+make run_all
+```
+#### With Waveform Dump
+```bash
+cd scripts
+make run_all_gui
+```
+### Directory Structure
+```
+{0}
+.
+├── docs
+├── README.md
+├── rtl
+│   └── {0}.sv
+├── scripts
+│   ├── logw.tcl
+│   └── Makefile
+├── sim
+│   ├── env
+│   │   ├── agent
+│   │   │   ├── {0}_agent_cfg.sv
+│   │   │   ├── {0}_agent_pkg.sv
+│   │   │   ├── {0}_agent.sv
+│   │   │   ├── {0}_driver.sv
+│   │   │   ├── {0}_intf.sv
+│   │   │   ├── {0}_monitor.sv
+│   │   │   ├── {0}_sequencer.sv
+│   │   │   ├── regs
+│   │   │   │   └── {0}_regs_pkg.sv
+│   │   │   └── sequence_lib
+│   │   │       ├── {0}_base_seq.sv
+│   │   │       ├── {0}_sanity_seq.sv
+│   │   │       ├── {0}_seq_item.sv
+│   │   │       └── {0}_seq_pkg.sv
+│   │   ├── {0}_cov.sv
+│   │   ├── {0}_env_pkg.sv
+│   │   ├── {0}_env.sv
+│   │   └── {0}_sb.sv
+│   ├── tb
+│   │   └── {0}_tb.sv
+│   └── tests
+│       ├── {0}_base_test.sv
+│       ├── {0}_sanity_test.sv
+│       └── {0}_test_pkg.sv
+└── synth
+```
+**Note** : .gitignore is added to project directory for easy git integration.
+"""
+
+gitignore = """\
+*
+!*/
+!.gitignore
+!*.md
+!*.pdf
+!*.sv
+!Makefile
+!logw.tcl
+!README.md
+"""

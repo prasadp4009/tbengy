@@ -33,7 +33,7 @@ import re
 import getpass
 from datetime import date
 
-from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, makefileStr, regsPkg, rtlModule, sanitySeq, sanityTest, seqItem, seqPkg, svIntf, tbModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon, uvmSb, uvmSeqr, xsimWaveTclStr
+from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, makefileStr, readmeMD, regsPkg, rtlModule, sanitySeq, sanityTest, seqItem, seqPkg, svIntf, tbModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon, uvmSb, uvmSeqr, xsimWaveTclStr
 
 moduleName = "na"
 username = getpass.getuser()
@@ -67,6 +67,8 @@ def mod_gen():
   global moduleName
   dirDict = {
     moduleName      : "./"+moduleName,
+    "readmeMD"      : "./"+moduleName,
+    "gitignore"     : "./"+moduleName,
     "docs"          : "./"+moduleName+"/docs",
     "rtl"           : "./"+moduleName+"/rtl",
     "sim"           : "./"+moduleName+"/sim",
@@ -102,7 +104,9 @@ def mod_gen():
     "Seq Pkg"       : ["sequence_lib", moduleName+"_seq_pkg.sv", seqPkg, [moduleName.upper(), moduleName]],
     "Seq Item"      : ["sequence_lib", moduleName+"_seq_item.sv", seqItem, [moduleName.upper(), moduleName]],
     "Base Seq"      : ["sequence_lib", moduleName+"_base_seq.sv", baseSeq, [moduleName.upper(), moduleName]],
-    "Sanity Seq"    : ["sequence_lib", moduleName+"_sanity_seq.sv", sanitySeq, [moduleName.upper(), moduleName]]
+    "Sanity Seq"    : ["sequence_lib", moduleName+"_sanity_seq.sv", sanitySeq, [moduleName.upper(), moduleName]],
+    "Readme"        : ["readmeMD", "README.md", readmeMD, [moduleName]],
+    "Gitignore"     : ["gitignore", ".gitignore", gitignore, []]
   }
   print ("Starting Generation of Testbench")
   genDirStruct(dirDict)
