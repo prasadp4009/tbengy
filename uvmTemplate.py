@@ -223,6 +223,14 @@ tbModule = """\
 
     {1}_intf intf(.clk(clk));
 
+    {1} DUT (
+      .clk(clk),
+      .we(intf.we),
+      .addr(intf.addr),
+      .wdata(intf.wdata),
+      .rdata(intf.rdata)
+    );
+
     initial begin
       clk = 0;
       forever begin
@@ -480,7 +488,9 @@ uvmSb  = """\
   task {1}_sb::run_phase(uvm_phase phase);
     forever begin
       sb_fifo.get(seq_item);
-      `uvm_info(get_full_name(), "[{0}] Received new item in SB", UVM_LOW)    
+      `uvm_info(get_full_name(), "[{0}] Received new item in SB", UVM_LOW)
+      `uvm_info(get_full_name(), $sformatf("\\n[{0}] Packet Data:\\n\\twe: %0d,\\n\\taddr: %0d,\\n\\twdata: %0d,\\n\\trdata: %0d", 
+      seq_item.we, seq_item.addr, seq_item.wdata, seq_item.rdata), UVM_LOW) 
     end
   endtask
 
@@ -508,6 +518,8 @@ uvmCov  = """\
 
   function void {1}_cov::write({1}_seq_item t);
     `uvm_info(get_full_name(), "[{0}] Received item in Subscriber", UVM_LOW)
+    `uvm_info(get_full_name(), $sformatf("\\n[{0}] Packet Data:\\n\\twe: %0d,\\n\\taddr: %0d,\\n\\twdata: %0d,\\n\\trdata: %0d", 
+      t.we, t.addr, t.wdata, t.rdata), UVM_LOW)
   endfunction
 
 `endif
@@ -664,6 +676,7 @@ uvmDrv = """\
     extern function new(string name = "{1}_driver", uvm_component parent = null);
     extern virtual function void build_phase(uvm_phase phase);
     // extern virtual function void connect_phase(uvm_phase phase);
+    extern virtual task reset_phase(uvm_phase phase);
     extern virtual task run_phase(uvm_phase phase);
     extern virtual task drive_task({1}_seq_item seq_item);
   endclass
@@ -681,9 +694,21 @@ uvmDrv = """\
 
   task {1}_driver::drive_task({1}_seq_item seq_item);
     `uvm_info(get_full_name(), "[{0}] Received Sequence Item in Driver", UVM_LOW)
-    
-    // @(vintf.clk);
-    #10;
+    @(negedge vintf.clk);
+    vintf.we <= seq_item.we;
+    vintf.addr <= seq_item.addr;
+    vintf.wdata <= seq_item.wdata;
+  endtask
+
+  task {1}_driver::reset_phase(uvm_phase phase);
+    super.reset_phase(phase);
+    phase.raise_objection(this);
+    `uvm_info(get_full_name(), "[{0}] Resetting DUT from Driver", UVM_NONE)    
+    vintf.we     <= 'd0;
+    vintf.addr   <= 'd0;
+    vintf.wdata  <= 'd0;
+    @(posedge vintf.clk);
+    phase.drop_objection(this);
   endtask
 
   task {1}_driver::run_phase(uvm_phase phase);
@@ -708,6 +733,9 @@ uvmMon = """\
 
     // Factory Registration
     `uvm_component_utils({1}_monitor)
+
+    // Variables
+    {1}_seq_item {1}_seq_item_h;
 
     // Interface
     virtual {1}_intf vintf;
@@ -743,11 +771,13 @@ uvmMon = """\
   endtask
 
   task {1}_monitor::mon_task();
-    {1}_seq_item {1}_seq_item_h;
     {1}_seq_item_h = {1}_seq_item::type_id::create("{1}_seq_item_h");
     forever begin
-      // @(vintf.clk);
-      #10;
+      @(posedge vintf.clk);
+      {1}_seq_item_h.we     = vintf.we;
+      {1}_seq_item_h.addr   = vintf.addr;
+      {1}_seq_item_h.wdata  = vintf.wdata;
+      {1}_seq_item_h.rdata  = vintf.rdata;
       mon_port.write({1}_seq_item_h);
       `uvm_info(get_full_name(), "[{0}] Written Sequence Item from Monitor", UVM_LOW)
     end
@@ -856,7 +886,9 @@ sanitySeq = """\
   task {1}_sanity_seq::body();
     super.body();
     `uvm_info(get_full_name(), "[{0}] Starting Sanity Sequence", UVM_LOW)
-    `uvm_do(req)
+    repeat(17) begin
+      `uvm_do_with(req, {{we==1;}})
+    end
     // wait_for_item_done();
   endtask
 
@@ -875,6 +907,12 @@ seqItem = """\
     `uvm_object_utils({1}_seq_item)
 
     // Randomization Variables
+    rand logic we;
+    randc logic [3:0] addr;
+    rand logic [7:0] wdata;
+    logic [7:0] rdata;
+
+    constraint dataRange {{wdata inside{{[0:15]}};}}
 
     extern function new(string name = "{1}_seq_item");
     

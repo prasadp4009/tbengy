@@ -25,7 +25,16 @@ File        : tbengy.py
 Author      : Prasad Pandit
 Email       : prasadp4009@gmail.com
 Github      : https://github.com/prasadp4009
-Description :  
+Description : tbengy is a UVM Testbench generation tool
+              It generates UVCs and Makefile with right away compilation ready
+              The Makefile supports compilation instructions for Vivado 2020.x
+Usage       : The tool requires Python 3x and uses standard Python libraries
+              Run command - 
+                python tbengy.py
+                Enter the module name: <your_module_name>
+              The tool will now generate directory of <your_module_name>
+              Go to the directory and open README.md on directory structure and
+              TB simulation instructions
 """
 import sys
 import os
