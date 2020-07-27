@@ -12,7 +12,7 @@
 # Setup Instructions
 ### 1. Python 3.x.x
 - Download Python3 from https://www.python.org/downloads/
-- Intall Python3 in your system
+- Install Python3 in your system
 - Check Python version in Terminal/Console/Command-Prompt/Powershell
 
 #### Command
@@ -31,7 +31,7 @@ Python 3.8.1
 
 ### 2. Xilinx Vivado 20xx.x
 - Download Vivado from https://www.xilinx.com/support/download.html 
-- Intall Vivado WebPack in your system
+- Install Vivado WebPack in your system
 - Set Xilinx Vivado bin folder path to User/System Environment Variables
 
 #### Setting Variable in Linux

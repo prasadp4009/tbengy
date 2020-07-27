@@ -52,7 +52,7 @@ today = date.today()
 def genTBF(fileName, tmplStr, fFields):
   try:
     print ("Creating file: ",fileName)
-    moduleFile = open(fileName, 'w')
+    moduleFile = open(fileName, 'w', encoding="utf-8")
     moduleFile.write(tmplStr.format(*fFields))
     moduleFile.close()
   except IOError:
