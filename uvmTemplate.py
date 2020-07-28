@@ -17,6 +17,106 @@ work = work
 
 top_tb_name = {2}_tb
 
+ifeq ($(OS),Windows_NT)
+
+ifneq ("$(wildcard ../rtl)","") 
+INCRTL = +incdir+../rtl 
+else 
+INCRTL = 
+endif
+
+ifneq ("$(wildcard ../rtl/*.sv)","") 
+RTL = ../rtl/{2}.sv 
+else 
+RTL = 
+endif
+
+ifneq ("$(wildcard ../sim/tb)","") 
+INCTB = +incdir+../sim/tb 
+else 
+INCTB = 
+endif
+
+ifneq ("$(wildcard ../sim/tb/*.sv)","") 
+TB = ../sim/tb/{2}_tb.sv 
+else 
+TB = 
+endif
+
+ifneq ("$(wildcard ../sim/env/agent)","") 
+INCINTF = +incdir+../sim/env/agent
+else 
+INCINTF = 
+endif 
+
+ifneq ("$(wildcard ../sim/env/agent/*intf.sv)","") 
+INTF = ../sim/env/agent/{2}_intf.sv
+else 
+INTF = 
+endif 
+
+ifneq ("$(wildcard ../sim/env/agent)","") 
+INCAGT = +incdir+../sim/env/agent 
+else 
+INCAGT = 
+endif 
+
+ifneq ("$(wildcard ../sim/env/agent/*pkg.sv)","") 
+AGT = ../sim/env/agent/{2}_agent_pkg.sv
+else 
+AGT = 
+endif 
+
+ifneq ("$(wildcard ../sim/env/agent/sequence_lib)","") 
+INCSEQ_LIB = +incdir+../sim/env/agent/sequence_lib 
+else 
+INCSEQ_LIB = 
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/sequence_lib/*pkg.sv)","") 
+SEQ_LIB = ../sim/env/agent/sequence_lib/{2}_seq_pkg.sv
+else 
+SEQ_LIB = 
+endif
+
+ifneq ("$(wildcard ../sim/env)","")
+INCENV = +incdir+../sim/env
+else
+INCENV =
+endif
+
+ifneq ("$(wildcard ../sim/env/*pkg.sv)","")
+ENV = ../sim/env/{2}_env_pkg.sv
+else
+ENV =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/regs)","")
+INCREG = +incdir+../sim/env/agent/regs
+else
+INCREG =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/regs/*pkg.sv)","")
+REG = ../sim/env/agent/regs/{2}_regs_pkg.sv
+else
+REG =
+endif
+
+ifneq ("$(wildcard ../sim/tests)","")
+INCTESTS = +incdir+../sim/tests
+else
+INCTESTS =
+endif
+
+ifneq ("$(wildcard ../sim/tests/*pkg.sv)","")
+TESTS = ../sim/tests/{2}_test_pkg.sv
+else
+TESTS =
+endif
+
+else
+
 ifneq ("$(wildcard ../rtl)","") 
 INCRTL = +incdir+../rtl 
 else 
@@ -113,6 +213,8 @@ else
 TESTS =
 endif
 
+endif
+
 ifeq ($(OS),Windows_NT)
 DELFILES = clean_dos
 else
@@ -124,14 +226,14 @@ cmp:
 	xelab work.$(top_tb_name) -s $(top_tb_name)_sim -L uvm -timescale 1ns/1ps -debug all
 
 run_sim_wave:
-	xsim -wdb sim.wdb -log session.log -t logw.tcl $(top_tb_name)_sim -testplusarg UVM_TESTNAME={2}_sanity_test
+	xsim -wdb sim.wdb -log session.log -t logw.tcl $(top_tb_name)_sim -testplusarg "UVM_TESTNAME={2}_sanity_test"
 	xsim sim.wdb -gui
 
 view_wave:
 	xsim sim.wdb -gui
 
 run_sim:
-	xsim -runall -log session.log $(top_tb_name)_sim -testplusarg UVM_TESTNAME={2}_sanity_test 
+	xsim -runall -log session.log $(top_tb_name)_sim -testplusarg "UVM_TESTNAME={2}_sanity_test"
 
 clean_linux:
 	rm -rf modelsim.* transcript* vlog.* work vsim.wlf *.log *hbs *Xil xsim.dir *.jou *.pb
