@@ -40,55 +40,61 @@ import sys
 import os
 import re
 import getpass
+import argparse
 from datetime import date
+from sys import version
 
 from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, makefileStr, readmeMD, regsPkg, rtlModule, sanitySeq, sanityTest, seqItem, seqPkg, svIntf, tbModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon, uvmSb, uvmSeqr, xsimWaveTclStr
 
+toolVersion = "tbengy v1.2"
 moduleName = "na"
+dirPath = "./"
 username = getpass.getuser()
 today = date.today()
+parser = argparse.ArgumentParser()
 
 
 def genTBF(fileName, tmplStr, fFields):
   try:
-    print ("Creating file: ",fileName)
+    print("[tbengy] Creating file: ",fileName)
     moduleFile = open(fileName, 'w', encoding="utf-8")
     moduleFile.write(tmplStr.format(*fFields))
     moduleFile.close()
   except IOError:
-    print("Falied to Write: "+fileName)
-    print("Please check write permissions. Exiting now.")
+    print("[tbengy] Falied to Write: "+fileName)
+    print("[tbengy] Please check write permissions. Exiting now.")
     sys.exit(0)
 
 def genTBC(tbDict, dirDictIn):
   for tbComp, compData in tbDict.items():
     compType, fileName, compTmpl, tmplArgs = compData
-    print("Generating "+tbComp)
+    print("[tbengy] Generating "+tbComp)
     genTBF(dirDictIn[compType]+"/"+fileName,compTmpl,tmplArgs)
 
 def genDirStruct(dirDictIn):
   for dirName, dirPath in dirDictIn.items():
     if not os.path.exists(dirPath):
-      print ("Creating Directory: " + dirName)
+      print("[tbengy] Creating Directory: " + dirName)
       os.makedirs(dirPath, exist_ok=True)
 
 def mod_gen():
   global moduleName
+  global dirPath
   dirDict = {
-    moduleName      : "./"+moduleName,
-    "readmeMD"      : "./"+moduleName,
-    "gitignore"     : "./"+moduleName,
-    "docs"          : "./"+moduleName+"/docs",
-    "rtl"           : "./"+moduleName+"/rtl",
-    "sim"           : "./"+moduleName+"/sim",
-    "synth"         : "./"+moduleName+"/synth",
-    "scripts"       : "./"+moduleName+"/scripts",
-    "env"           : "./"+moduleName+"/sim/env",
-    "tb"            : "./"+moduleName+"/sim/tb",
-    "tests"         : "./"+moduleName+"/sim/tests",
-    "agent"         : "./"+moduleName+"/sim/env/agent",
-    "regs"          : "./"+moduleName+"/sim/env/agent/regs",
-    "sequence_lib"  : "./"+moduleName+"/sim/env/agent/sequence_lib"
+    moduleName      : dirPath+moduleName,
+    "readmeMD"      : dirPath+moduleName,
+    "gitignore"     : dirPath+moduleName,
+    "docs"          : dirPath+moduleName+"/docs",
+    "rtl"           : dirPath+moduleName+"/rtl",
+    "sim"           : dirPath+moduleName+"/sim",
+    "synth"         : dirPath+moduleName+"/synth",
+    "scripts"       : dirPath+moduleName+"/scripts",
+    "env"           : dirPath+moduleName+"/sim/env",
+    "tb"            : dirPath+moduleName+"/sim/tb",
+    "tests"         : dirPath+moduleName+"/sim/tests",
+    "agent"         : dirPath+moduleName+"/sim/env/agent",
+    "regs"          : dirPath+moduleName+"/sim/env/agent/regs",
+    "sequence_lib"  : dirPath+moduleName+"/sim/env/agent/sequence_lib"
   }
   tmplDict = {
     "RTL"           : ["rtl", moduleName+".sv", rtlModule, [moduleName.upper(), moduleName]],
@@ -117,22 +123,58 @@ def mod_gen():
     "Readme"        : ["readmeMD", "README.md", readmeMD, [moduleName]],
     "Gitignore"     : ["gitignore", ".gitignore", gitignore, []]
   }
-  print ("Starting Generation of Testbench")
+  print("[tbengy] Starting Generation of Testbench")
   genDirStruct(dirDict)
   genTBC(tmplDict, dirDict)
   print ("+_+_+_+_+_+_+_+ Done with module creation....!!!!! +_+_+_+_+_+_+_+\n")
 
+def parserSetup():
+  global parser
+  global toolVersion
+  parser.add_argument('-v', '--version', action='version',
+                      version=toolVersion, help="Show tbengy version and exit")
+  parser.add_argument('-m', '--modulename', nargs=1, metavar='<module_name>', required=True,
+                      type=str, help="Module name for which TB to be generated. Ex. -m my_design")
+  parser.add_argument('-d', '--dirpath', nargs=1, metavar='<dir_path>',
+                      type=str, help="Directory under which TB should be generated. Ex. -d ./myProjects/TB. Default is present working dir.")
+  return parser.parse_args()
+
 def main():
   global moduleName
-  print ("+_+_+_+_+_+_+_+ Welcome to tbengy a UVM Project Generator for Vivado 2020.x +_+_+_+_+_+_+_+\n")
-  moduleName = input("Enter name of module: ")
-  if not re.match("^[A-Za-z0-9_]*$", moduleName):
-    if not re.match("^[A-Za-z_]*$", moduleName[0]):
-      print ("ERROR: Wrong module name format. Exiting Now.")
+  global dirPath
+  args = parserSetup()
+  if args.modulename:
+    moduleName = args.modulename[0]
+    if re.match(r'^\w+$', moduleName) and (moduleName[0].isalpha() or moduleName[0] == '_'):
+      print("[tbengy] Module Name: "+ moduleName)
+    else:
+      print("[tbengy] ERROR: Incorrect module name format. Exiting Now.")
       sys.exit(0)
   else:
-    moduleName = moduleName.lower()
-    mod_gen()
+    print("[tbengy] ERROR: Module name required. Exiting Now. Pass -h for help.")
+    sys.exit(0)
+  if args.dirpath:
+    checkPath = os.path.expandvars(args.dirpath[0])
+    if os.path.exists(checkPath):
+      checkPath = os.path.abspath(checkPath)
+      dirPath = checkPath if '/' == checkPath[-1] else checkPath + '/'
+    else:
+      print("[tbengy] Error: Directory path or Environement Variable don't exist - "+checkPath)
+      sys.exit(0)
+  else:
+    dirPath = os.getcwd() + '/'
+  print("[tbengy] TB Directory: "+dirPath)
+  toolVersionCheck = os.popen("vivado -version")
+  toolVersionCheck = toolVersionCheck.readline()
+  if "Vivado" in toolVersionCheck:
+    if  "202" not in toolVersionCheck:
+      print("[tbengy] Warning: The Vivado Version you have may not support the Makefile commands. Please download Vivado 2020.1 or greater")
+    else:
+      print("[tbengy] Vivado found and mapped correctly: " + toolVersionCheck.strip())
+  else:
+    print("[tbengy] Warning: No Vivado found or not in Path variables. Makefile won't work correctly. Please download Vivado 2020.x and map to Path variable")
+  print ("+_+_+_+_+_+_+_+ Welcome to tbengy a UVM Project Generator +_+_+_+_+_+_+_+\n")
+  mod_gen()
 
 if __name__ == "__main__":
   main()
