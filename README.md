@@ -1,4 +1,4 @@
-# tbengy 1.0
+# tbengy 1.2
 **tbengy** Python Tool for UVM Testbench Generation. The tool uses newly available capability of **Vivado tool by Xilinx (WebPack Version)** to compile and run UVM Testbench
 
 # Demo
