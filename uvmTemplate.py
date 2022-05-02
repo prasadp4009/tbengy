@@ -19,64 +19,64 @@ top_tb_name = {2}_tb
 
 ifeq ($(OS),Windows_NT)
 
-ifneq ("$(wildcard ../rtl)","") 
-INCRTL = +incdir+../rtl 
-else 
-INCRTL = 
+ifneq ("$(wildcard ../rtl)","")
+INCRTL = +incdir+../rtl
+else
+INCRTL =
 endif
 
-ifneq ("$(wildcard ../rtl/*.sv)","") 
-RTL = ../rtl/{2}.sv 
-else 
-RTL = 
+ifneq ("$(wildcard ../rtl/*.sv)","")
+RTL = ../rtl/{2}.sv
+else
+RTL =
 endif
 
-ifneq ("$(wildcard ../sim/tb)","") 
-INCTB = +incdir+../sim/tb 
-else 
-INCTB = 
+ifneq ("$(wildcard ../sim/tb)","")
+INCTB = +incdir+../sim/tb
+else
+INCTB =
 endif
 
-ifneq ("$(wildcard ../sim/tb/*.sv)","") 
-TB = ../sim/tb/{2}_tb.sv 
-else 
-TB = 
+ifneq ("$(wildcard ../sim/tb/*.sv)","")
+TB = ../sim/tb/{2}_tb.sv
+else
+TB =
 endif
 
-ifneq ("$(wildcard ../sim/env/agent)","") 
+ifneq ("$(wildcard ../sim/env/agent)","")
 INCINTF = +incdir+../sim/env/agent
-else 
-INCINTF = 
-endif 
-
-ifneq ("$(wildcard ../sim/env/agent/*intf.sv)","") 
-INTF = ../sim/env/agent/{2}_intf.sv
-else 
-INTF = 
-endif 
-
-ifneq ("$(wildcard ../sim/env/agent)","") 
-INCAGT = +incdir+../sim/env/agent 
-else 
-INCAGT = 
-endif 
-
-ifneq ("$(wildcard ../sim/env/agent/*pkg.sv)","") 
-AGT = ../sim/env/agent/{2}_agent_pkg.sv
-else 
-AGT = 
-endif 
-
-ifneq ("$(wildcard ../sim/env/agent/sequence_lib)","") 
-INCSEQ_LIB = +incdir+../sim/env/agent/sequence_lib 
-else 
-INCSEQ_LIB = 
+else
+INCINTF =
 endif
 
-ifneq ("$(wildcard ../sim/env/agent/sequence_lib/*pkg.sv)","") 
+ifneq ("$(wildcard ../sim/env/agent/*intf.sv)","")
+INTF = ../sim/env/agent/{2}_intf.sv
+else
+INTF =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent)","")
+INCAGT = +incdir+../sim/env/agent
+else
+INCAGT =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/*pkg.sv)","")
+AGT = ../sim/env/agent/{2}_agent_pkg.sv
+else
+AGT =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/sequence_lib)","")
+INCSEQ_LIB = +incdir+../sim/env/agent/sequence_lib
+else
+INCSEQ_LIB =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/sequence_lib/*pkg.sv)","")
 SEQ_LIB = ../sim/env/agent/sequence_lib/{2}_seq_pkg.sv
-else 
-SEQ_LIB = 
+else
+SEQ_LIB =
 endif
 
 ifneq ("$(wildcard ../sim/env)","")
@@ -117,64 +117,64 @@ endif
 
 else
 
-ifneq ("$(wildcard ../rtl)","") 
-INCRTL = +incdir+../rtl 
-else 
-INCRTL = 
+ifneq ("$(wildcard ../rtl)","")
+INCRTL = +incdir+../rtl
+else
+INCRTL =
 endif
 
-ifneq ("$(wildcard ../rtl/*.sv)","") 
-RTL = ../rtl/*.sv 
-else 
-RTL = 
+ifneq ("$(wildcard ../rtl/*.sv)","")
+RTL = ../rtl/*.sv
+else
+RTL =
 endif
 
-ifneq ("$(wildcard ../sim/tb)","") 
-INCTB = +incdir+../sim/tb 
-else 
-INCTB = 
+ifneq ("$(wildcard ../sim/tb)","")
+INCTB = +incdir+../sim/tb
+else
+INCTB =
 endif
 
-ifneq ("$(wildcard ../sim/tb/*.sv)","") 
-TB = ../sim/tb/*.sv 
-else 
-TB = 
+ifneq ("$(wildcard ../sim/tb/*.sv)","")
+TB = ../sim/tb/*.sv
+else
+TB =
 endif
 
-ifneq ("$(wildcard ../sim/env/agent)","") 
+ifneq ("$(wildcard ../sim/env/agent)","")
 INCINTF = +incdir+../sim/env/agent
-else 
-INCINTF = 
-endif 
-
-ifneq ("$(wildcard ../sim/env/agent/*intf.sv)","") 
-INTF = ../sim/env/agent/*intf.sv
-else 
-INTF = 
-endif 
-
-ifneq ("$(wildcard ../sim/env/agent)","") 
-INCAGT = +incdir+../sim/env/agent 
-else 
-INCAGT = 
-endif 
-
-ifneq ("$(wildcard ../sim/env/agent/*pkg.sv)","") 
-AGT = ../sim/env/agent/*pkg.sv
-else 
-AGT = 
-endif 
-
-ifneq ("$(wildcard ../sim/env/agent/sequence_lib)","") 
-INCSEQ_LIB = +incdir+../sim/env/agent/sequence_lib 
-else 
-INCSEQ_LIB = 
+else
+INCINTF =
 endif
 
-ifneq ("$(wildcard ../sim/env/agent/sequence_lib/*pkg.sv)","") 
+ifneq ("$(wildcard ../sim/env/agent/*intf.sv)","")
+INTF = ../sim/env/agent/*intf.sv
+else
+INTF =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent)","")
+INCAGT = +incdir+../sim/env/agent
+else
+INCAGT =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/*pkg.sv)","")
+AGT = ../sim/env/agent/*pkg.sv
+else
+AGT =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/sequence_lib)","")
+INCSEQ_LIB = +incdir+../sim/env/agent/sequence_lib
+else
+INCSEQ_LIB =
+endif
+
+ifneq ("$(wildcard ../sim/env/agent/sequence_lib/*pkg.sv)","")
 SEQ_LIB = ../sim/env/agent/sequence_lib/*pkg.sv
-else 
-SEQ_LIB = 
+else
+SEQ_LIB =
 endif
 
 ifneq ("$(wildcard ../sim/env)","")
@@ -270,6 +270,123 @@ run_all_gui:
 	make run_sim_wave
 """
 
+makefileSVStr="""\
+# @Author : {0}
+# @Date   : {1}
+
+work = work
+
+top_tb_name = {2}_tb
+
+ifeq ($(OS),Windows_NT)
+
+ifneq ("$(wildcard ../rtl)","")
+INCRTL = +incdir+../rtl
+else
+INCRTL =
+endif
+
+ifneq ("$(wildcard ../rtl/*.sv)","")
+RTL = ../rtl/{2}.sv
+else
+RTL =
+endif
+
+ifneq ("$(wildcard ../sim/tb)","")
+INCTB = +incdir+../sim/tb
+else
+INCTB =
+endif
+
+ifneq ("$(wildcard ../sim/tb/*.sv)","")
+TB = ../sim/tb/{2}_tb.sv
+else
+TB =
+endif
+
+else
+
+ifneq ("$(wildcard ../rtl)","")
+INCRTL = +incdir+../rtl
+else
+INCRTL =
+endif
+
+ifneq ("$(wildcard ../rtl/*.sv)","")
+RTL = ../rtl/*.sv
+else
+RTL =
+endif
+
+ifneq ("$(wildcard ../sim/tb)","")
+INCTB = +incdir+../sim/tb
+else
+INCTB =
+endif
+
+ifneq ("$(wildcard ../sim/tb/*.sv)","")
+TB = ../sim/tb/*.sv
+else
+TB =
+endif
+
+endif
+
+ifeq ($(OS),Windows_NT)
+DELFILES = clean_dos
+else
+DELFILES = clean_linux
+endif
+
+cmp:
+	xvlog -work $(work) -i ../sim -sv $(RTL) $(TB) -L uvm
+	xelab work.$(top_tb_name) -s $(top_tb_name)_sim -L uvm -timescale 1ns/1ps -debug all
+
+run_sim_wave:
+	xsim -wdb sim.wdb -log session.log -t logw.tcl $(top_tb_name)_sim -testplusarg "CREATOR=pr454dP4nd!t"
+	xsim sim.wdb -gui
+
+view_wave:
+	xsim sim.wdb -gui
+
+run_sim:
+	xsim -runall -log session.log $(top_tb_name)_sim -testplusarg "CREATOR=pr454dP4nd!t"
+
+clean_linux:
+	rm -rf modelsim.* transcript* vlog.* work vsim.wlf *.log *hbs *Xil xsim.dir *.jou *.pb
+	clear
+
+clean_dos:
+	if exist modelsim.* del modelsim.* /F /S /Q /A
+	if exist transcript* del transcript* /F /S /Q /A
+	if exist vlog.* del vlog.* /F /S /Q /A
+	if exist vsim.wlf del vsim.wlf /F /S /Q /A
+	if exist *.log del *.log /F /S /Q /A
+	if exist work rd work /q /s
+	if exist covhtmlreport rd covhtmlreport /q /s
+	if exist *hbs del *hbs /q /s
+	if exist *Xil del *Xil /q /s
+	if exist xsim.dir del xsim.dir /q /s
+	if exist *.jou del *.jou /F /S /Q /A
+	if exist *.pb del *.pb /F /S /Q /A
+
+clean_log:
+	if exist *.log del *.log /f /s /q /a
+
+clean:
+	make $(DELFILES)
+
+run_all:
+	make clean
+	make cmp
+	make run_sim
+
+run_all_gui:
+	make clean
+	make cmp
+	make run_sim_wave
+"""
+
 xsimWaveTclStr="""\
 log_wave -r *
 run all
@@ -300,6 +417,34 @@ rtlModule = """\
   end
 
   assign rdata = mem[addr_reg];
+
+  endmodule : {1}
+
+`endif
+
+//End of {1}
+"""
+
+rtlSVModule = """\
+`ifndef {0}__SV
+`define {0}__SV
+
+  module {1}
+  (
+    input  logic clk,
+    input  logic rst,
+    input  logic [7:0] wdata,
+    output logic [7:0] rdata
+  );
+
+  always_ff @(posedge clk or negedge rst) begin
+    if(!rst) begin
+      rdata <= 'd0;
+    end
+    else begin
+      rdata <= wdata;
+    end
+  end
 
   endmodule : {1}
 
@@ -343,6 +488,64 @@ tbModule = """\
     initial begin
       uvm_config_db #(virtual {1}_intf)::set(null, "*", "vintf", intf);
       run_test();
+    end
+  endmodule
+
+`endif
+
+//End of {1}_tb
+"""
+
+tbSVModule = """\
+`ifndef {0}_TB__SV
+`define {0}_TB__SV
+
+  // Generated by tbengy. Created by Prasad Pandit.
+
+  `timescale 1ns/1ps
+  `include "uvm_macros.svh"
+
+  module {1}_tb;
+    // import uvm_pkg::*; // Uncomment if you are adding UVM code
+
+    logic clk;
+    logic rst;
+    logic [7:0] wdata;
+    logic [7:0] rdata;
+
+    {1} DUT (
+      .clk(clk),
+      .rst(rst),
+      .wdata(wdata),
+      .rdata(rdata)
+    );
+
+    task negDelay();
+      @(negedge clk);
+    endtask
+
+    initial begin
+      clk = 0;
+      forever begin
+        #10 clk = ~clk;
+      end
+    end
+
+    initial begin
+      rst = 0;
+      wdata = 0;
+      $display("------------- Starting Test -------------");
+      #10;
+      rst = 1;
+      negDelay;
+      wdata = 'h44;
+      negDelay;
+      wdata = 'h41;
+      negDelay;
+      wdata = 'h44;
+      negDelay;
+      wdata = 'h55;
+      #100 $finish;
     end
   endmodule
 
@@ -591,8 +794,8 @@ uvmSb  = """\
     forever begin
       sb_fifo.get(seq_item);
       `uvm_info(get_full_name(), "[{0}] Received new item in SB", UVM_LOW)
-      `uvm_info(get_full_name(), $sformatf("\\n[{0}] Packet Data:\\n\\twe: %0d,\\n\\taddr: %0d,\\n\\twdata: %0d,\\n\\trdata: %0d", 
-      seq_item.we, seq_item.addr, seq_item.wdata, seq_item.rdata), UVM_LOW) 
+      `uvm_info(get_full_name(), $sformatf("\\n[{0}] Packet Data:\\n\\twe: %0d,\\n\\taddr: %0d,\\n\\twdata: %0d,\\n\\trdata: %0d",
+      seq_item.we, seq_item.addr, seq_item.wdata, seq_item.rdata), UVM_LOW)
     end
   endtask
 
@@ -606,7 +809,7 @@ uvmCov  = """\
 `define {0}_COV__SV
 
   class {1}_cov extends uvm_subscriber#({1}_seq_item);
-    
+
     // Factory Registration
     `uvm_component_utils({1}_cov)
 
@@ -620,7 +823,7 @@ uvmCov  = """\
 
   function void {1}_cov::write({1}_seq_item t);
     `uvm_info(get_full_name(), "[{0}] Received item in Subscriber", UVM_LOW)
-    `uvm_info(get_full_name(), $sformatf("\\n[{0}] Packet Data:\\n\\twe: %0d,\\n\\taddr: %0d,\\n\\twdata: %0d,\\n\\trdata: %0d", 
+    `uvm_info(get_full_name(), $sformatf("\\n[{0}] Packet Data:\\n\\twe: %0d,\\n\\taddr: %0d,\\n\\twdata: %0d,\\n\\trdata: %0d",
       t.we, t.addr, t.wdata, t.rdata), UVM_LOW)
   endfunction
 
@@ -686,7 +889,7 @@ uvmAgnt = """\
   function void {1}_agent::build_phase(uvm_phase phase);
     super.build_phase(phase);
     `uvm_info(get_full_name(), "[{0}] Starting Build Phase", UVM_LOW)
-    
+
     // agnt_cfg = {1}_agent_cfg::type_id::create("agnt_cfg");
     if(!uvm_config_db#({1}_agent_cfg)::get(this, "", "agnt_cfg", agnt_cfg)) begin
       `uvm_fatal(get_type_name(), "[{0}] Couldn't get agnt_cfg, did you set it?")
@@ -754,7 +957,7 @@ svIntf = """\
     logic [3:0] addr;
     logic [7:0] wdata;
     logic [7:0] rdata;
-    
+
   endinterface
 
 `endif
@@ -805,7 +1008,7 @@ uvmDrv = """\
   task {1}_driver::reset_phase(uvm_phase phase);
     super.reset_phase(phase);
     phase.raise_objection(this);
-    `uvm_info(get_full_name(), "[{0}] Resetting DUT from Driver", UVM_NONE)    
+    `uvm_info(get_full_name(), "[{0}] Resetting DUT from Driver", UVM_NONE)
     vintf.we     <= 'd0;
     vintf.addr   <= 'd0;
     vintf.wdata  <= 'd0;
@@ -852,7 +1055,7 @@ uvmMon = """\
     // extern virtual function void connect_phase(uvm_phase phase);
     extern virtual task run_phase(uvm_phase phase);
     extern virtual task mon_task();
-    
+
   endclass
 
   function {1}_monitor::new(string name = "{1}_monitor", uvm_component parent = null);
@@ -956,7 +1159,7 @@ baseSeq = """\
   endfunction
 
   task {1}_base_seq::body();
-    
+
   endtask
 
 `endif
@@ -1017,7 +1220,7 @@ seqItem = """\
     constraint dataRange {{wdata inside{{[0:15]}};}}
 
     extern function new(string name = "{1}_seq_item");
-    
+
   endclass
 
   function {1}_seq_item::new(string name = "{1}_seq_item");
@@ -1100,6 +1303,39 @@ make run_all_gui
 │       ├── {0}_base_test.sv
 │       ├── {0}_sanity_test.sv
 │       └── {0}_test_pkg.sv
+└── synth
+```
+**Note** : .gitignore is added to project directory for easy git integration.
+"""
+
+readmeSVMD = """\
+## {0} Architecture, Design and Verification Details
+
+### Commands to run sanity test
+#### Without Wave Dump
+```bash
+cd scripts
+make run_all
+```
+#### With Waveform Dump
+```bash
+cd scripts
+make run_all_gui
+```
+### Directory Structure
+```
+{0}
+.
+├── docs
+├── README.md
+├── rtl
+│   └── {0}.sv
+├── scripts
+│   ├── logw.tcl
+│   └── Makefile
+├── sim
+│   └── tb
+│       └── {0}_tb.sv
 └── synth
 ```
 **Note** : .gitignore is added to project directory for easy git integration.
