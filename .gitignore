@@ -3,3 +3,6 @@
 !.gitignore
 !README.md
 !LICENSE
+!digilent-xdc
+!*.xdc
+!License.txt

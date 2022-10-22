@@ -36,6 +36,7 @@ Usage       : The tool requires Python 3x and uses standard Python libraries
               Go to the directory and open README.md on directory structure and
               TB simulation instructions
 """
+from itertools import count
 import sys
 import os
 import re
@@ -53,7 +54,31 @@ tbType = "uvm"
 username = getpass.getuser()
 today = date.today()
 parser = argparse.ArgumentParser()
+mutuallyExclusiveArgs = parser.add_mutually_exclusive_group(required=True)
+boardList = []
+boardName = ""
 
+def listBoards(onlyList=False):
+  if os.path.exists("./digilent-xdc"):
+    count = 0
+    boardList = []
+    print("[tbengy] Available boards:")
+    for board in os.listdir("./digilent-xdc"):
+      if board.endswith(".xdc"):
+        boardName = board.replace(".xdc","").replace("-Master","").strip()
+        boardList.append(boardName)
+        if not onlyList:
+          print("[tbengy] "+boardName)
+        count += 1
+    if count == 0:
+      print("[tbengy] No boards found. Please download digilent-xdc from https://github.com/Digilent/digilent-xdc.git and place it in current directory under digilent-xdc.")
+      sys.exit(0)
+    else:
+      print("[tbengy] Total boards: "+str(count))
+      return boardList
+  else:
+    print("[tbengy] No boards found. Please download digilent-xdc from https://github.com/Digilent/digilent-xdc.git and place it in current directory under digilent-xdc.")
+    sys.exit(0)
 
 def genTBF(fileName, tmplStr, fFields):
   try:
@@ -82,6 +107,7 @@ def mod_gen():
   global moduleName
   global dirPath
   global tbType
+  global boardName
   if tbType == "sv":
     dirDict = {
       moduleName      : dirPath+moduleName,
@@ -156,19 +182,28 @@ def parserSetup():
   global toolVersion
   parser.add_argument('-v', '--version', action='version',
                       version=toolVersion, help="Show tbengy version and exit")
-  parser.add_argument('-m', '--modulename', nargs=1, metavar='<module_name>', required=True,
+  mutuallyExclusiveArgs.add_argument('-l', '--listboards', action='store_true', help="Show the list of available boards and exit")
+  mutuallyExclusiveArgs.add_argument('-m', '--modulename', nargs=1, metavar='<module_name>',
                       type=str, help="Module name for which TB to be generated. Ex. -m my_design")
   parser.add_argument('-t', '--tbtype', nargs=1, metavar='<tb_type>', required=False,
                       type=str, default='uvm', choices=['uvm', 'sv'], help="Testbench type to be generated. Ex. -t uvm or -t sv")
+  parser.add_argument('-b', '--boardtype', nargs=1, metavar='<board_type>', required=False,
+                      type=str, help="Board Files to be added. Ex. -b zybo, -b nexys4_ddr etc.")
   parser.add_argument('-d', '--dirpath', nargs=1, metavar='<dir_path>',
                       type=str, help="Directory under which TB should be generated. Ex. -d ./myProjects/TB. Default is present working dir.")
+
   return parser.parse_args()
 
 def main():
   global moduleName
   global dirPath
   global tbType
+  global boardName
+  global boardFileName
   args = parserSetup()
+  if args.listboards:
+    listBoards()
+    sys.exit(0)
   if args.modulename:
     moduleName = args.modulename[0]
     if re.match(r'^\w+$', moduleName) and (moduleName[0].isalpha() or moduleName[0] == '_'):
@@ -176,33 +211,48 @@ def main():
     else:
       print("[tbengy] ERROR: Incorrect module name format. Exiting Now.")
       sys.exit(0)
+    if args.boardtype:
+      boardName = args.boardtype[0].strip()
+      boardAvailable = False
+      boardNameAsFile = ""
+      for board in listBoards(True):
+        if boardName.upper() in board.upper():
+          boardAvailable = True
+          boardNameAsFile = board
+          break
+      if boardAvailable:
+        boardName = boardNameAsFile
+        boardFileName = boardNameAsFile + "-Master.xdc"
+      else:
+        print("[tbengy] Board " + boardName + " not found. Exiting...")
+        sys.exit(0)
+    if args.dirpath:
+      checkPath = os.path.expandvars(args.dirpath[0])
+      if os.path.exists(checkPath):
+        checkPath = os.path.abspath(checkPath)
+        dirPath = checkPath if '/' == checkPath[-1] else checkPath + '/'
+      else:
+        print("[tbengy] Error: Directory path or Environement Variable don't exist - "+checkPath)
+        sys.exit(0)
+    else:
+      dirPath = os.getcwd() + '/'
+    if args.tbtype:
+      tbType = args.tbtype[0]
+    print("[tbengy] TB Directory: "+dirPath)
+    toolVersionCheck = os.popen("vivado -version")
+    toolVersionCheck = toolVersionCheck.readline()
+    if "Vivado" in toolVersionCheck:
+      if  "202" not in toolVersionCheck:
+        print("[tbengy] Warning: The Vivado Version you have may not support the Makefile commands. Please download Vivado 2020.1 or greater")
+      else:
+        print("[tbengy] Vivado found and mapped correctly: " + toolVersionCheck.strip())
+    else:
+      print("[tbengy] Warning: No Vivado found or not in Path variables. Makefile won't work correctly. Please download Vivado 2020.x and map to Path variable")
+    print ("+_+_+_+_+_+_+_+ Welcome to tbengy a SV/UVM Project Generator +_+_+_+_+_+_+_+\n")
+    mod_gen()
   else:
     print("[tbengy] ERROR: Module name required. Exiting Now. Pass -h for help.")
     sys.exit(0)
-  if args.dirpath:
-    checkPath = os.path.expandvars(args.dirpath[0])
-    if os.path.exists(checkPath):
-      checkPath = os.path.abspath(checkPath)
-      dirPath = checkPath if '/' == checkPath[-1] else checkPath + '/'
-    else:
-      print("[tbengy] Error: Directory path or Environement Variable don't exist - "+checkPath)
-      sys.exit(0)
-  else:
-    dirPath = os.getcwd() + '/'
-  if args.tbtype:
-    tbType = args.tbtype[0]
-  print("[tbengy] TB Directory: "+dirPath)
-  toolVersionCheck = os.popen("vivado -version")
-  toolVersionCheck = toolVersionCheck.readline()
-  if "Vivado" in toolVersionCheck:
-    if  "202" not in toolVersionCheck:
-      print("[tbengy] Warning: The Vivado Version you have may not support the Makefile commands. Please download Vivado 2020.1 or greater")
-    else:
-      print("[tbengy] Vivado found and mapped correctly: " + toolVersionCheck.strip())
-  else:
-    print("[tbengy] Warning: No Vivado found or not in Path variables. Makefile won't work correctly. Please download Vivado 2020.x and map to Path variable")
-  print ("+_+_+_+_+_+_+_+ Welcome to tbengy a UVM Project Generator +_+_+_+_+_+_+_+\n")
-  mod_gen()
 
 if __name__ == "__main__":
   main()
