@@ -45,25 +45,30 @@ import argparse
 from datetime import date
 from sys import version
 
-from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, makefileStr, makefileSVStr, readmeMD, readmeSVMD, regsPkg, rtlModule, rtlSVModule, sanitySeq, sanityTest, seqItem, seqPkg, svIntf, tbModule, tbSVModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon, uvmSb, uvmSeqr, xsimWaveTclStr
+from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, makefileStr, makefileSVStr,     \
+                        readmeMD, readmeSVMD, regsPkg, rtlModule, rtlSVModule, sanitySeq, sanityTest, seqItem,  \
+                        seqPkg, svIntf, tbModule, tbSVModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon, \
+                        uvmSb, uvmSeqr, xsimWaveTclStr, synthCommandStr, synthTclStr, rtlSVExModule, tbSVExModule
 
 toolVersion = "tbengy v1.3"
 moduleName = "na"
 dirPath = "./"
 tbType = "uvm"
+boardsFilePath = "./digilent-xdc"
 username = getpass.getuser()
 today = date.today()
 parser = argparse.ArgumentParser()
 mutuallyExclusiveArgs = parser.add_mutually_exclusive_group(required=True)
 boardList = []
 boardName = ""
+clkFreq = 125
 
 def listBoards(onlyList=False):
-  if os.path.exists("./digilent-xdc"):
+  if os.path.exists(boardsFilePath):
     count = 0
     boardList = []
     print("[tbengy] Available boards:")
-    for board in os.listdir("./digilent-xdc"):
+    for board in os.listdir(boardsFilePath):
       if board.endswith(".xdc"):
         boardName = board.replace(".xdc","").replace("-Master","").strip()
         boardList.append(boardName)
@@ -103,15 +108,24 @@ def genDirStruct(dirDictIn):
       print("[tbengy] Creating Directory: " + dirName)
       os.makedirs(dirPath, exist_ok=True)
 
+def getClkFreq(boardFilePath):
+  if os.path.isfile(boardFilePath):
+    with open(boardFilePath, 'r',  encoding="utf-8") as boardData:
+      pass
+  else:
+    print("[tbengy] Falied to find and read: "+boardFilePath)
+    sys.exit(0)
+
 def mod_gen():
   global moduleName
   global dirPath
   global tbType
   global boardName
-  if tbType == "sv":
+  global boardFileName
+  if tbType == "sv" and boardName == "":
     dirDict = {
       moduleName      : dirPath+moduleName,
-      "readmeMD"    : dirPath+moduleName,
+      "readmeMD"      : dirPath+moduleName,
       "gitignore"     : dirPath+moduleName,
       "docs"          : dirPath+moduleName+"/docs",
       "rtl"           : dirPath+moduleName+"/rtl",
@@ -123,6 +137,26 @@ def mod_gen():
     tmplDict = {
       "RTL"           : ["rtl", moduleName+".sv", rtlSVModule, [moduleName.upper(), moduleName]],
       "Makefile"      : ["scripts", "Makefile", makefileSVStr, [username,today,moduleName]],
+      "Wave Gen Tcl"  : ["scripts", "logw.tcl", xsimWaveTclStr, []],
+      "TB Top"        : ["tb", moduleName+"_tb.sv", tbSVModule, [moduleName.upper(), moduleName]],
+      "Readme"        : ["readmeMD", "README.md", readmeSVMD, [moduleName]],
+      "Gitignore"     : ["gitignore", ".gitignore", gitignore, []]
+    }
+  elif tbType == "sv" and boardName != "":
+    dirDict = {
+      moduleName      : dirPath+moduleName,
+      "readmeMD"      : dirPath+moduleName,
+      "gitignore"     : dirPath+moduleName,
+      "docs"          : dirPath+moduleName+"/docs",
+      "rtl"           : dirPath+moduleName+"/rtl",
+      "sim"           : dirPath+moduleName+"/sim",
+      "synth"         : dirPath+moduleName+"/synth",
+      "scripts"       : dirPath+moduleName+"/scripts",
+      "tb"            : dirPath+moduleName+"/sim/tb"
+    }
+    tmplDict = {
+      "RTL"           : ["rtl", moduleName+".sv", rtlSVExModule, [moduleName.upper(), moduleName]],
+      "Makefile"      : ["scripts", "Makefile", makefileSVStr+synthCommandStr, [username,today,moduleName]],
       "Wave Gen Tcl"  : ["scripts", "logw.tcl", xsimWaveTclStr, []],
       "TB Top"        : ["tb", moduleName+"_tb.sv", tbSVModule, [moduleName.upper(), moduleName]],
       "Readme"        : ["readmeMD", "README.md", readmeSVMD, [moduleName]],
@@ -188,7 +222,7 @@ def parserSetup():
   parser.add_argument('-t', '--tbtype', nargs=1, metavar='<tb_type>', required=False,
                       type=str, default='uvm', choices=['uvm', 'sv'], help="Testbench type to be generated. Ex. -t uvm or -t sv")
   parser.add_argument('-b', '--boardtype', nargs=1, metavar='<board_type>', required=False,
-                      type=str, help="Board Files to be added. Ex. -b zybo, -b nexys4_ddr etc.")
+                      type=str, help="Board Files to be added. Ex. -b zybo, -b nexys4_ddr, -b zybo-z7 etc.")
   parser.add_argument('-d', '--dirpath', nargs=1, metavar='<dir_path>',
                       type=str, help="Directory under which TB should be generated. Ex. -d ./myProjects/TB. Default is present working dir.")
 
@@ -200,6 +234,7 @@ def main():
   global tbType
   global boardName
   global boardFileName
+  global boardsFilePath
   args = parserSetup()
   if args.listboards:
     listBoards()
@@ -215,14 +250,17 @@ def main():
       boardName = args.boardtype[0].strip()
       boardAvailable = False
       boardNameAsFile = ""
+      boardNameClean = boardName.replace("-","").replace("_","")
       for board in listBoards(True):
-        if boardName.upper() in board.upper():
+        boardAvailableCheckClean = board.replace("-","").replace("_","")
+        if boardNameClean.upper() == boardAvailableCheckClean.upper():
           boardAvailable = True
           boardNameAsFile = board
           break
       if boardAvailable:
         boardName = boardNameAsFile
         boardFileName = boardNameAsFile + "-Master.xdc"
+        clkFreq = getClkFreq(boardsFilePath+"/"+boardFileName)
       else:
         print("[tbengy] Board " + boardName + " not found. Exiting...")
         sys.exit(0)

@@ -339,7 +339,7 @@ DELFILES = clean_linux
 endif
 
 cmp:
-	xvlog -work $(work) -i ../sim -sv $(RTL) $(TB) -L uvm
+	xvlog -work $(work) -i ../sim -sv $(RTL) $(TB) -L uvm -d "SIM=1"
 	xelab work.$(top_tb_name) -s $(top_tb_name)_sim -L uvm -timescale 1ns/1ps -debug all
 
 run_sim_wave:
