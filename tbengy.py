@@ -51,7 +51,7 @@ from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, 
                         uvmSb, uvmSeqr, xsimWaveTclStr, synthCommandStr, synthTclStr, rtlSVExModule, tbSVExModule, \
                         readmeSVEXMD
 
-toolVersion = "tbengy v1.8"
+toolVersion = "tbengy v2"
 moduleName = "na"
 dirPath = "./"
 tbType = "uvm"
