@@ -36,6 +36,7 @@ Usage       : The tool requires Python 3x and uses standard Python libraries
               Go to the directory and open README.md on directory structure and
               TB simulation instructions
 """
+import shutil
 import sys
 import os
 import re
@@ -44,16 +45,48 @@ import argparse
 from datetime import date
 from sys import version
 
-from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, makefileStr, makefileSVStr, readmeMD, readmeSVMD, regsPkg, rtlModule, rtlSVModule, sanitySeq, sanityTest, seqItem, seqPkg, svIntf, tbModule, tbSVModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon, uvmSb, uvmSeqr, xsimWaveTclStr
+from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, makefileStr, makefileSVStr,        \
+                        readmeMD, readmeSVMD, regsPkg, rtlModule, rtlSVModule, sanitySeq, sanityTest, seqItem,     \
+                        seqPkg, svIntf, tbModule, tbSVModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon,    \
+                        uvmSb, uvmSeqr, xsimWaveTclStr, synthCommandStr, synthTclStr, rtlSVExModule, tbSVExModule, \
+                        readmeSVEXMD
 
-toolVersion = "tbengy v1.3"
+toolVersion = "tbengy v2"
 moduleName = "na"
 dirPath = "./"
 tbType = "uvm"
+boardsFilePath = "./digilent-xdc"
 username = getpass.getuser()
 today = date.today()
 parser = argparse.ArgumentParser()
+mutuallyExclusiveArgs = parser.add_mutually_exclusive_group(required=True)
+boardList = []
+boardName = ""
+fpgaName = ""
+clkFreq = "125"
 
+def listBoards(onlyList=False):
+  if os.path.exists(boardsFilePath):
+    count = 0
+    boardList = []
+    if not onlyList:
+      print("[tbengy] Available boards:")
+    for board in os.listdir(boardsFilePath):
+      if board.endswith(".xdc"):
+        boardName = board.replace(".xdc","").replace("-Master","").strip()
+        boardList.append(boardName)
+        if not onlyList:
+          print("[tbengy] "+boardName)
+        count += 1
+    if count == 0:
+      print("[tbengy] No boards found. Please download digilent-xdc from https://github.com/Digilent/digilent-xdc.git and place it in current directory under digilent-xdc.")
+      sys.exit(0)
+    else:
+      print("[tbengy] Total boards found: "+str(count))
+      return boardList
+  else:
+    print("[tbengy] No boards found. Please download digilent-xdc from https://github.com/Digilent/digilent-xdc.git and place it in current directory under digilent-xdc.")
+    sys.exit(0)
 
 def genTBF(fileName, tmplStr, fFields):
   try:
@@ -78,14 +111,60 @@ def genDirStruct(dirDictIn):
       print("[tbengy] Creating Directory: " + dirName)
       os.makedirs(dirPath, exist_ok=True)
 
+def copyDictFiles(dirDictIn, copyDictIn):
+  for dirName, fileToCopyPath in copyDictIn.items():
+    if os.path.exists(dirDictIn[dirName]):
+      if os.path.isfile(fileToCopyPath):
+        print("[tbengy] Copying File "+fileToCopyPath+" to directory: " + dirDictIn[dirName])
+        shutil.copy(fileToCopyPath,dirDictIn[dirName])
+      else:
+        print("[tbengy] Unable to find file, file copying failed: " + fileToCopyPath)
+    else:
+      print("[tbengy] Unable to find directory, file copying failed: " + dirDictIn[dirName])
+
+def getClkFreq(boardFilePath):
+  clkFreqFromFile = ""
+  if os.path.isfile(boardFilePath):
+    with open(boardFilePath, 'r',  encoding="utf-8") as boardData:
+      eachLine = boardData.readline()
+      clockFound = False
+      print("[tbengy] Finding Clock Frequency in XDC: "+boardFilePath)
+      while eachLine:
+        # print("[tbengy] Checking Line: "+eachLine.strip())
+        if eachLine.strip().startswith("## clk = "):
+          clkFreqStr = eachLine.strip().split("=")[1]
+          clkFreqFromFile = ""
+          for eachChar in clkFreqStr:
+            if eachChar.isdigit():
+              clkFreqFromFile += eachChar
+          clockFound = True
+          break
+        eachLine = boardData.readline()
+      if clockFound:
+        print("[tbengy] Clock Frequency Found in XDC: "+clkFreqFromFile)
+      else:
+        clkFreqFromFile = "125"
+        print("[tbengy] (Warning) Falied to find Clock Frequency (a random default will be used): "+clkFreqFromFile)
+      return clkFreqFromFile
+  else:
+    print("[tbengy] Falied to find and read: "+boardFilePath)
+    sys.exit(0)
+
 def mod_gen():
   global moduleName
   global dirPath
   global tbType
-  if tbType == "sv":
+  global boardName
+  global boardFileName
+  global fpgaName
+  global clkFreq
+  dirDict       = {}
+  tmplDict      = {}
+  copyFilesDict = {}
+  if tbType == "sv" and boardName == "":
     dirDict = {
       moduleName      : dirPath+moduleName,
-      "readmeMD"    : dirPath+moduleName,
+      "readmeMD"      : dirPath+moduleName,
       "gitignore"     : dirPath+moduleName,
       "docs"          : dirPath+moduleName+"/docs",
       "rtl"           : dirPath+moduleName+"/rtl",
@@ -101,6 +180,30 @@ def mod_gen():
       "TB Top"        : ["tb", moduleName+"_tb.sv", tbSVModule, [moduleName.upper(), moduleName]],
       "Readme"        : ["readmeMD", "README.md", readmeSVMD, [moduleName]],
       "Gitignore"     : ["gitignore", ".gitignore", gitignore, []]
+    }
+  elif tbType == "sv" and boardName != "":
+    dirDict = {
+      moduleName      : dirPath+moduleName,
+      "readmeMD"      : dirPath+moduleName,
+      "gitignore"     : dirPath+moduleName,
+      "docs"          : dirPath+moduleName+"/docs",
+      "rtl"           : dirPath+moduleName+"/rtl",
+      "sim"           : dirPath+moduleName+"/sim",
+      "synth"         : dirPath+moduleName+"/synth",
+      "scripts"       : dirPath+moduleName+"/scripts",
+      "tb"            : dirPath+moduleName+"/sim/tb"
+    }
+    tmplDict = {
+      "RTL"           : ["rtl", moduleName+".sv", rtlSVExModule, [moduleName.upper(), moduleName, clkFreq]],
+      "Makefile"      : ["scripts", "Makefile", makefileSVStr+synthCommandStr, [username,today,moduleName]],
+      "Wave Gen Tcl"  : ["scripts", "logw.tcl", xsimWaveTclStr, []],
+      "TB Top"        : ["tb", moduleName+"_tb.sv", tbSVExModule, [moduleName.upper(), moduleName]],
+      "Synth Tcl"     : ["scripts", "synth.tcl", synthTclStr, [fpgaName, boardFileName.replace(".xdc",""), moduleName]],
+      "Readme"        : ["readmeMD", "README.md", readmeSVEXMD, [moduleName, boardFileName.replace(".xdc","")]],
+      "Gitignore"     : ["gitignore", ".gitignore", gitignore, []]
+    }
+    copyFilesDict = {
+      "synth"         : boardsFilePath+"/"+boardFileName
     }
   else:
     dirDict = {
@@ -149,6 +252,7 @@ def mod_gen():
   print("[tbengy] Starting Generation of " + tbType.upper() + " Testbench")
   genDirStruct(dirDict)
   genTBC(tmplDict, dirDict)
+  copyDictFiles(dirDict, copyFilesDict)
   print ("+_+_+_+_+_+_+_+ Done with module creation....!!!!! +_+_+_+_+_+_+_+\n")
 
 def parserSetup():
@@ -156,10 +260,15 @@ def parserSetup():
   global toolVersion
   parser.add_argument('-v', '--version', action='version',
                       version=toolVersion, help="Show tbengy version and exit")
-  parser.add_argument('-m', '--modulename', nargs=1, metavar='<module_name>', required=True,
+  mutuallyExclusiveArgs.add_argument('-l', '--listboards', action='store_true', help="Show the list of available boards and exit")
+  mutuallyExclusiveArgs.add_argument('-m', '--modulename', nargs=1, metavar='<module_name>',
                       type=str, help="Module name for which TB to be generated. Ex. -m my_design")
   parser.add_argument('-t', '--tbtype', nargs=1, metavar='<tb_type>', required=False,
                       type=str, default='uvm', choices=['uvm', 'sv'], help="Testbench type to be generated. Ex. -t uvm or -t sv")
+  parser.add_argument('-b', '--boardtype', nargs=1, metavar='<board_type>', required=False,
+                      type=str, help="Board Files to be added. Ex. -b zybo, -b nexys4_ddr, -b zybo-z7 etc.")
+  parser.add_argument('-f', '--fpga', nargs=1, metavar='<fpga>', required=False,
+                      type=str, help="FPGA used in board. Ex. -f xc7z010clg400-1, -f xc7a100tcsg324-1, -f xc7z010clg400-1 etc. for Zybo, Nexys 4 DDR and Zybo-Z7-10 respectively")
   parser.add_argument('-d', '--dirpath', nargs=1, metavar='<dir_path>',
                       type=str, help="Directory under which TB should be generated. Ex. -d ./myProjects/TB. Default is present working dir.")
   return parser.parse_args()
@@ -168,7 +277,15 @@ def main():
   global moduleName
   global dirPath
   global tbType
+  global boardName
+  global fpgaName
+  global clkFreq
+  global boardFileName
+  global boardsFilePath
   args = parserSetup()
+  if args.listboards:
+    listBoards()
+    sys.exit(0)
   if args.modulename:
     moduleName = args.modulename[0]
     if re.match(r'^\w+$', moduleName) and (moduleName[0].isalpha() or moduleName[0] == '_'):
@@ -176,33 +293,64 @@ def main():
     else:
       print("[tbengy] ERROR: Incorrect module name format. Exiting Now.")
       sys.exit(0)
+    if args.boardtype:
+      if args.fpga:
+        fpgaName = args.fpga[0].strip()
+        print("[tbengy] FPGA Selected: "+fpgaName)
+      else:
+        print("[tbengy] FPGA info is needed with board. Please provide and re-run the script. Exiting...")
+        sys.exit(0)
+      boardName = args.boardtype[0].strip()
+      boardAvailable = False
+      boardNameAsFile = ""
+      boardNameClean = boardName.replace("-","").replace("_","")
+      availableBoardList = listBoards(True)
+      for board in availableBoardList:
+        boardAvailableCheckClean = board.replace("-","").replace("_","")
+        if boardNameClean.upper() == boardAvailableCheckClean.upper():
+          boardAvailable = True
+          boardNameAsFile = board
+          break
+      if boardAvailable:
+        boardName = boardNameAsFile
+        boardFileName = boardNameAsFile + "-Master.xdc"
+        if os.path.isfile(boardsFilePath+"/"+boardFileName):
+          print("[tbengy] Board " + boardName + " found.")
+          print("[tbengy] Board File " + boardsFilePath + "/" + boardFileName + " found.")
+        else:
+          print("[tbengy] Board File " + boardsFilePath + "/" + boardFileName + " not found. Exiting...")
+          sys.exit(0)
+        clkFreq = getClkFreq(boardsFilePath+"/"+boardFileName)
+      else:
+        print("[tbengy] Board " + boardName + " not found. Exiting...")
+        sys.exit(0)
+    if args.dirpath:
+      checkPath = os.path.expandvars(args.dirpath[0])
+      if os.path.exists(checkPath):
+        checkPath = os.path.abspath(checkPath)
+        dirPath = checkPath if '/' == checkPath[-1] else checkPath + '/'
+      else:
+        print("[tbengy] Error: Directory path or Environement Variable don't exist - "+checkPath)
+        sys.exit(0)
+    else:
+      dirPath = os.getcwd() + '/'
+    if args.tbtype:
+      tbType = args.tbtype[0]
+    print("[tbengy] TB Directory: "+dirPath)
+    toolVersionCheck = os.popen("vivado -version")
+    toolVersionCheck = toolVersionCheck.readline()
+    if "Vivado" in toolVersionCheck:
+      if  "202" not in toolVersionCheck:
+        print("[tbengy] Warning: The Vivado Version you have may not support the Makefile commands. Please download Vivado 2020.1 or greater")
+      else:
+        print("[tbengy] Vivado found and mapped correctly: " + toolVersionCheck.strip())
+    else:
+      print("[tbengy] Warning: No Vivado found or not in Path variables. Makefile won't work correctly. Please download Vivado 2020.x and map to Path variable")
+    print ("+_+_+_+_+_+_+_+ Welcome to tbengy a SV/UVM Project Generator +_+_+_+_+_+_+_+\n")
+    mod_gen()
   else:
     print("[tbengy] ERROR: Module name required. Exiting Now. Pass -h for help.")
     sys.exit(0)
-  if args.dirpath:
-    checkPath = os.path.expandvars(args.dirpath[0])
-    if os.path.exists(checkPath):
-      checkPath = os.path.abspath(checkPath)
-      dirPath = checkPath if '/' == checkPath[-1] else checkPath + '/'
-    else:
-      print("[tbengy] Error: Directory path or Environement Variable don't exist - "+checkPath)
-      sys.exit(0)
-  else:
-    dirPath = os.getcwd() + '/'
-  if args.tbtype:
-    tbType = args.tbtype[0]
-  print("[tbengy] TB Directory: "+dirPath)
-  toolVersionCheck = os.popen("vivado -version")
-  toolVersionCheck = toolVersionCheck.readline()
-  if "Vivado" in toolVersionCheck:
-    if  "202" not in toolVersionCheck:
-      print("[tbengy] Warning: The Vivado Version you have may not support the Makefile commands. Please download Vivado 2020.1 or greater")
-    else:
-      print("[tbengy] Vivado found and mapped correctly: " + toolVersionCheck.strip())
-  else:
-    print("[tbengy] Warning: No Vivado found or not in Path variables. Makefile won't work correctly. Please download Vivado 2020.x and map to Path variable")
-  print ("+_+_+_+_+_+_+_+ Welcome to tbengy a UVM Project Generator +_+_+_+_+_+_+_+\n")
-  mod_gen()
 
 if __name__ == "__main__":
   main()
