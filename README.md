@@ -1,4 +1,4 @@
-# tbengy 1.3
+# tbengy v2
 **tbengy** Python Tool for SV/UVM Testbench Generation and RTL Synthesis. The tool uses newly available capability of **Vivado tool by Xilinx (WebPack Version)** to compile and run SV/UVM Testbench and syntheize RTL for Digilent FPGA Boards
 
 # Demo (Demo will be updated soon)
