@@ -407,8 +407,8 @@ set_part {0}
 # STEP#1: setup design sources and constraints
 #read_vhdl -library bftLib [ glob ./Sources/hdl/bftLib/*.vhdl ]
 #read_vhdl ./Sources/hdl/bft.vhdl
-read_verilog [ glob ../rtl/*.v ]
-read_verilog [ glob ../rtl/*.sv ]
+read_verilog -sv [ glob ../rtl/*.*v ]
+#read_verilog [ glob ../rtl/*.v ]
 #Board/FPGA XDC
 read_xdc ../synth/{1}.xdc
 # STEP#2: run synthesis, report utilization and timing estimates, write checkpoint design
@@ -668,7 +668,7 @@ tbSVExModule = """\
 
     logic clk;
     logic rst;
-    logic ledOut
+    logic ledOut;
 
     {1} DUT (
       .clk(clk),
