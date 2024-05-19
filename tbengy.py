@@ -37,6 +37,7 @@ Usage       : The tool requires Python 3x and uses standard Python libraries
               TB simulation instructions
 """
 import shutil
+import subprocess
 import sys
 import os
 import re
@@ -64,6 +65,30 @@ boardList = []
 boardName = ""
 fpgaName = ""
 clkFreq = "125"
+
+def check_tool_availability():
+  tools = {
+    'vivado': 'vivado -version',
+    'questasim': 'vsim -version',
+    'vcs': 'vcs -full64 -help',
+    'xcelium': 'xrun -version',
+    'verilator': 'verilator --version'
+  }
+
+  availability = {}
+  for tool, command in tools.items():
+    try:
+      result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      if result.returncode == 0:
+        availability[tool] = result.stdout.splitlines()[0]
+        # print(f"[tbengy] Checking Tool: {tool} is available")
+      else:
+        availability[tool] = None
+        # print(f"[tbengy] Checking Tool: {tool} is not available")
+    except FileNotFoundError:
+      availability[tool] = None
+      # print(f"[tbengy] Checking Tool: {tool} is not available")
+  return availability
 
 def listBoards(onlyList=False):
   if os.path.exists(boardsFilePath):
@@ -261,6 +286,7 @@ def parserSetup():
   parser.add_argument('-v', '--version', action='version',
                       version=toolVersion, help="Show tbengy version and exit")
   mutuallyExclusiveArgs.add_argument('-l', '--listboards', action='store_true', help="Show the list of available boards and exit")
+  mutuallyExclusiveArgs.add_argument('-c', '--check-tools', action='store_true', help='Check the availability of EDA tools and print the result.')
   mutuallyExclusiveArgs.add_argument('-m', '--modulename', nargs=1, metavar='<module_name>',
                       type=str, help="Module name for which TB to be generated. Ex. -m my_design")
   parser.add_argument('-t', '--tbtype', nargs=1, metavar='<tb_type>', required=False,
@@ -286,6 +312,14 @@ def main():
   if args.listboards:
     listBoards()
     sys.exit(0)
+  if args.check_tools:
+    availability = check_tool_availability()
+    for tool, version in availability.items():
+      if version:
+        print(f"[tbengy] Tool {tool}: Available, Version: {version}")
+      else:
+          print(f"[tbengy] Tool {tool}: Not available")
+  sys.exit(0)
   if args.modulename:
     moduleName = args.modulename[0]
     if re.match(r'^\w+$', moduleName) and (moduleName[0].isalpha() or moduleName[0] == '_'):

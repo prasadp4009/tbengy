@@ -278,8 +278,10 @@ work = work
 
 top_tb_name = {2}_tb
 
-ifeq ($(OS),Windows_NT)
+SIMULATOR = vivado  # Change this to questa, vcs, xcelium, or verilator as needed
 
+# Directory and file structure
+ifeq ($(OS),Windows_NT)
 ifneq ("$(wildcard ../rtl)","")
 INCRTL = +incdir+../rtl
 else
@@ -305,7 +307,6 @@ TB =
 endif
 
 else
-
 ifneq ("$(wildcard ../rtl)","")
 INCRTL = +incdir+../rtl
 else
@@ -332,28 +333,62 @@ endif
 
 endif
 
+ifeq ($(SIMULATOR),vivado)
+	CMP_CMD = xvlog -work $(work) -i ../sim -sv $(RTL) $(TB) -L uvm -d "SIM=1"
+	ELAB_CMD = xelab work.$(top_tb_name) -s $(top_tb_name)_sim -L uvm -timescale 1ns/1ps -debug all
+	SIM_CMD_WAVE = xsim -wdb sim.wdb -log session.log -t logw.tcl $(top_tb_name)_sim -testplusarg "CREATOR=pr454dP4nd!t"
+	SIM_CMD = xsim -runall -log session.log $(top_tb_name)_sim -testplusarg "CREATOR=pr454dP4nd!t"
+else ifeq ($(SIMULATOR),questa)
+	CMP_CMD = vlog -work $(work) $(INCRTL) $(INCTB) $(RTL) $(TB) +define+SIM=1
+	ELAB_CMD = vlib $(work)
+	SIM_CMD_WAVE = vsim -c -lib $(work) -do "run -all; exit" -testplusarg "CREATOR=pr454dP4nd!t"
+	SIM_CMD = vsim -c -lib $(work) -do "run -all; exit" -testplusarg "CREATOR=pr454dP4nd!t"
+else ifeq ($(SIMULATOR),vcs)
+	CMP_CMD = vcs -full64 -sverilog -timescale=1ns/1ps -debug_all $(INCRTL) $(INCTB) $(RTL) $(TB) +define+SIM=1
+	ELAB_CMD =
+	SIM_CMD_WAVE = ./simv -ucli -do "run -all; exit" -l simv.log -testplusarg "CREATOR=pr454dP4nd!t"
+	SIM_CMD = ./simv -ucli -do "run -all; exit" -l simv.log -testplusarg "CREATOR=pr454dP4nd!t"
+else ifeq ($(SIMULATOR),xcelium)
+	CMP_CMD = xrun -sv $(INCRTL) $(INCTB) $(RTL) $(TB) -define SIM=1 -top $(top_tb_name) -l xcelium.log
+	ELAB_CMD =
+	SIM_CMD_WAVE = xrun -R $(INCRTL) $(INCTB) $(RTL) $(TB) -top $(top_tb_name) -l xcelium_sim.log -testplusarg "CREATOR=pr454dP4nd!t"
+	SIM_CMD = xrun -R $(INCRTL) $(INCTB) $(RTL) $(TB) -top $(top_tb_name) -l xcelium_sim.log -testplusarg "CREATOR=pr454dP4nd!t"
+else ifeq ($(SIMULATOR),verilator)
+	CMP_CMD = verilator --cc $(RTL) $(TB) --exe sim_main.cpp -CFLAGS -std=c++11 -D SIM=1
+	ELAB_CMD = make -C obj_dir -f V$(top_tb_name)_tb.mk V$(top_tb_name)_tb
+	SIM_CMD_WAVE = ./obj_dir/V$(top_tb_name)_tb --trace -testplusarg "CREATOR=pr454dP4nd!t"
+	SIM_CMD = ./obj_dir/V$(top_tb_name)_tb -testplusarg "CREATOR=pr454dP4nd!t"
+else
+	$(error Unsupported simulator: $(SIMULATOR))
+endif
+
 ifeq ($(OS),Windows_NT)
 DELFILES = clean_dos
 else
 DELFILES = clean_linux
 endif
 
+# Compilation
 cmp:
-	xvlog -work $(work) -i ../sim -sv $(RTL) $(TB) -L uvm -d "SIM=1"
-	xelab work.$(top_tb_name) -s $(top_tb_name)_sim -L uvm -timescale 1ns/1ps -debug all
+	$(CMP_CMD)
+	$(ELAB_CMD)
 
+# Simulation
 run_sim_wave:
-	xsim -wdb sim.wdb -log session.log -t logw.tcl $(top_tb_name)_sim -testplusarg "CREATOR=pr454dP4nd!t"
-	xsim sim.wdb -gui
-
-view_wave:
-	xsim sim.wdb -gui
+	$(SIM_CMD_WAVE)
 
 run_sim:
-	xsim -runall -log session.log $(top_tb_name)_sim -testplusarg "CREATOR=pr454dP4nd!t"
+	$(SIM_CMD)
 
+# Synthesis for Artix FPGA using F4PGA
+synth:
+	yosys -p "synth_xilinx -top $(top_tb_name) -flatten; write_json $(top_tb_name).json" $(RTL) $(TB)
+	nextpnr-xilinx --chipdb /path/to/artix7-xc7a35t-ttg7.bin --json $(top_tb_name).json --write $(top_tb_name)_routed.json --fasm $(top_tb_name).fasm --report $(top_tb_name)_report.txt
+	fasm2bels --db-root /path/to/f4pga/prjxray-db/artix7 --part xc7a35tcsg324-1 $(top_tb_name).fasm $(top_tb_name).bit
+
+# Clean generated files
 clean_linux:
-	rm -rf modelsim.* transcript* vlog.* work vsim.wlf *.log *hbs *Xil xsim.dir *.jou *.pb
+	rm -rf modelsim.* transcript* vlog.* work vsim.wlf *.log *hbs *Xil xsim.dir *.jou *.pb obj_dir
 	clear
 
 clean_dos:
