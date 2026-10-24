@@ -49,7 +49,7 @@ from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, 
                         readmeMD, readmeSVMD, regsPkg, rtlModule, rtlSVModule, sanitySeq, sanityTest, seqItem,     \
                         seqPkg, svIntf, tbModule, tbSVModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon,    \
                         uvmSb, uvmSeqr, xsimWaveTclStr, synthCommandStr, synthTclStr, rtlSVExModule, tbSVExModule, \
-                        readmeSVEXMD
+                        readmeSVEXMD, f4pgaCommandStr, f4pgaFlowStr, f4pgaSdcStr, readmeF4pgaMD
 
 toolVersion = "tbengy v2"
 moduleName = "na"
@@ -63,6 +63,7 @@ mutuallyExclusiveArgs = parser.add_mutually_exclusive_group(required=True)
 boardList = []
 boardName = ""
 fpgaName = ""
+backendName = "vivado"
 clkFreq = "125"
 
 def listBoards(onlyList=False):
@@ -158,6 +159,7 @@ def mod_gen():
   global boardFileName
   global fpgaName
   global clkFreq
+  global backendName
   dirDict       = {}
   tmplDict      = {}
   copyFilesDict = {}
@@ -205,6 +207,18 @@ def mod_gen():
     copyFilesDict = {
       "synth"         : boardsFilePath+"/"+boardFileName
     }
+    if backendName == "f4pga":
+      if not fpgaName.startswith("xc7z010"):
+        print("[tbengy] Warning: --backend f4pga MVP flow is tuned for xc7z010 parts (DEVICE=xc7z010_test mapping at the top of f4pga.mk). Generating anyway for part: "+fpgaName)
+      try:
+        clkPeriodNs = "{:.3f}".format(1000.0/float(clkFreq))
+      except (TypeError, ValueError):
+        clkPeriodNs = "8.000"
+      tmplDict["Makefile"] = ["scripts", "Makefile", makefileSVStr+f4pgaCommandStr, [username,today,moduleName]]
+      del tmplDict["Synth Tcl"]
+      tmplDict["F4PGA Flow"] = ["scripts", "f4pga.mk", f4pgaFlowStr, [fpgaName, boardFileName.replace(".xdc",""), moduleName, clkPeriodNs]]
+      tmplDict["F4PGA SDC"] = ["synth", moduleName+".sdc", f4pgaSdcStr, [moduleName, clkPeriodNs]]
+      tmplDict["Readme"] = ["readmeMD", "README.md", readmeF4pgaMD, [moduleName, boardFileName.replace(".xdc","")]]
   else:
     dirDict = {
       moduleName      : dirPath+moduleName,
@@ -269,6 +283,8 @@ def parserSetup():
                       type=str, help="Board Files to be added. Ex. -b zybo, -b nexys4_ddr, -b zybo-z7 etc.")
   parser.add_argument('-f', '--fpga', nargs=1, metavar='<fpga>', required=False,
                       type=str, help="FPGA used in board. Ex. -f xc7z010clg400-1, -f xc7a100tcsg324-1, -f xc7z010clg400-1 etc. for Zybo, Nexys 4 DDR and Zybo-Z7-10 respectively")
+  parser.add_argument('--backend', nargs=1, metavar='<backend>', required=False,
+                      type=str, default=['vivado'], choices=['vivado', 'f4pga'], help="Synthesis backend for board projects. Ex. --backend vivado (default) or --backend f4pga (experimental, PL-only)")
   parser.add_argument('-d', '--dirpath', nargs=1, metavar='<dir_path>',
                       type=str, help="Directory under which TB should be generated. Ex. -d ./myProjects/TB. Default is present working dir.")
   return parser.parse_args()
@@ -282,6 +298,7 @@ def main():
   global clkFreq
   global boardFileName
   global boardsFilePath
+  global backendName
   args = parserSetup()
   if args.listboards:
     listBoards()
@@ -336,16 +353,29 @@ def main():
       dirPath = os.getcwd() + '/'
     if args.tbtype:
       tbType = args.tbtype[0]
+    if args.backend:
+      backendName = args.backend[0]
+    print("[tbengy] Backend Selected: "+backendName)
+    if backendName == "f4pga" and not (tbType == "sv" and boardName != ""):
+      print("[tbengy] Warning: --backend f4pga applies only to SV+board generation (-t sv with -b/-f). Proceeding with default generation for this project type.")
     print("[tbengy] TB Directory: "+dirPath)
-    toolVersionCheck = os.popen("vivado -version")
-    toolVersionCheck = toolVersionCheck.readline()
-    if "Vivado" in toolVersionCheck:
-      if  "202" not in toolVersionCheck:
-        print("[tbengy] Warning: The Vivado Version you have may not support the Makefile commands. Please download Vivado 2020.1 or greater")
+    if backendName == "f4pga":
+      f4pgaTools = ["symbiflow_synth", "f4pga", "yosys"]
+      missingTools = [tool for tool in f4pgaTools if shutil.which(tool) is None]
+      if missingTools:
+        print("[tbengy] Warning: F4PGA tool(s) not found in Path variables: " + ", ".join(missingTools) + ". Makefile (F4PGA flow) won't work correctly. Please install F4PGA, set F4PGA_INSTALL_DIR and activate the xc7 conda environment")
       else:
-        print("[tbengy] Vivado found and mapped correctly: " + toolVersionCheck.strip())
+        print("[tbengy] F4PGA tools found and mapped correctly: " + ", ".join(f4pgaTools))
     else:
-      print("[tbengy] Warning: No Vivado found or not in Path variables. Makefile won't work correctly. Please download Vivado 2020.x and map to Path variable")
+      toolVersionCheck = os.popen("vivado -version")
+      toolVersionCheck = toolVersionCheck.readline()
+      if "Vivado" in toolVersionCheck:
+        if  "202" not in toolVersionCheck:
+          print("[tbengy] Warning: The Vivado Version you have may not support the Makefile commands. Please download Vivado 2020.1 or greater")
+        else:
+          print("[tbengy] Vivado found and mapped correctly: " + toolVersionCheck.strip())
+      else:
+        print("[tbengy] Warning: No Vivado found or not in Path variables. Makefile won't work correctly. Please download Vivado 2020.x and map to Path variable")
     print ("+_+_+_+_+_+_+_+ Welcome to tbengy a SV/UVM Project Generator +_+_+_+_+_+_+_+\n")
     mod_gen()
   else:

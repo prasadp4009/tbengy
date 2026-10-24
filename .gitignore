@@ -6,3 +6,6 @@
 !digilent-xdc
 !*.xdc
 !License.txt
+!tests
+!tests/*.py
+
