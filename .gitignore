@@ -9,3 +9,5 @@
 !tests
 !tests/*.py
 
+!tests/golden
+!tests/golden/**

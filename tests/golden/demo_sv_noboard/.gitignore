@@ -1,0 +1,9 @@
+*
+!*/
+!.gitignore
+!*.md
+!*.pdf
+!*.sv
+!Makefile
+!logw.tcl
+!README.md

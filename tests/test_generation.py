@@ -15,7 +15,14 @@ Covered:
      `vivado -mode batch` anywhere in the Makefile.
   c) Backend-neutral files (RTL, testbench, board XDC) are
      byte-identical between the default and f4pga generations.
+  d) UVM generation (either backend) produces the full UVM file set
+     with NO synthesis artifacts, and `--backend f4pga` on a UVM
+     project (where the backend does not engage) produces output
+     byte-identical to the default.
 """
+
+class SkipTest(Exception):
+    """Raise to mark a test as skipped (with a reason)."""
 
 import subprocess
 import sys
@@ -176,16 +183,101 @@ def test_probe_follows_engagement():
         assert "No Vivado found" in proc.stdout
 
 
+def _generate_uvm(dest_dir, extra_args, module="demo_uvm", env=None):
+    dest = Path(dest_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+    cmd = [sys.executable, str(TBENGY),
+           "-m", module, "-t", "uvm", "-d", str(dest)] + list(extra_args)
+    proc = subprocess.run(cmd, cwd=str(REPO_ROOT), env=env,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          universal_newlines=True)
+    assert proc.returncode == 0, "tbengy failed:\n" + proc.stdout
+    proj = dest / module
+    assert proj.is_dir(), "project dir not generated:\n" + proc.stdout
+    return proj, proc.stdout
+
+
+def _tree_bytes(proj):
+    return {str(p.relative_to(proj)): p.read_bytes()
+            for p in sorted(proj.rglob("*")) if p.is_file()}
+
+
+def _uvm_expected_files(module):
+    m = module
+    return {
+        ".gitignore", "README.md",
+        "rtl/%s.sv" % m,
+        "scripts/Makefile", "scripts/logw.tcl",
+        "sim/tb/%s_tb.sv" % m,
+        "sim/env/%s_env_pkg.sv" % m, "sim/env/%s_env.sv" % m,
+        "sim/env/%s_cov.sv" % m, "sim/env/%s_sb.sv" % m,
+        "sim/env/agent/%s_agent_pkg.sv" % m,
+        "sim/env/agent/%s_agent_cfg.sv" % m,
+        "sim/env/agent/%s_agent.sv" % m,
+        "sim/env/agent/%s_intf.sv" % m,
+        "sim/env/agent/%s_driver.sv" % m,
+        "sim/env/agent/%s_monitor.sv" % m,
+        "sim/env/agent/%s_sequencer.sv" % m,
+        "sim/env/agent/regs/%s_regs_pkg.sv" % m,
+        "sim/env/agent/sequence_lib/%s_seq_pkg.sv" % m,
+        "sim/env/agent/sequence_lib/%s_seq_item.sv" % m,
+        "sim/env/agent/sequence_lib/%s_base_seq.sv" % m,
+        "sim/env/agent/sequence_lib/%s_sanity_seq.sv" % m,
+        "sim/tests/%s_test_pkg.sv" % m,
+        "sim/tests/%s_base_test.sv" % m,
+        "sim/tests/%s_sanity_test.sv" % m,
+    }
+
+
+def test_uvm_file_set():
+    with tempfile.TemporaryDirectory() as tmp:
+        proj, _ = _generate_uvm(tmp, [])
+        files = _tree_bytes(proj)
+        expected = _uvm_expected_files("demo_uvm")
+        assert set(files) == expected, \
+            "UVM file set mismatch. missing=%s extra=%s" % (
+                sorted(expected - set(files)), sorted(set(files) - expected))
+        assert len(files) == 25
+
+
+def test_uvm_no_synthesis_artifacts_either_backend():
+    with tempfile.TemporaryDirectory() as tmp:
+        for label, extra in (("default", []), ("f4pga", ["--backend", "f4pga"])):
+            proj, _ = _generate_uvm(str(Path(tmp) / label), extra)
+            names = set(_tree_bytes(proj))
+            for bad in ("scripts/synth.tcl", "scripts/f4pga.mk"):
+                assert bad not in names, label + " UVM project contains " + bad
+            for rel in names:
+                assert not rel.endswith((".sdc", ".xdc")), \
+                    label + " UVM project contains constraint file " + rel
+            synth_files = [p for p in (proj / "synth").rglob("*") if p.is_file()]
+            assert not synth_files, label + " UVM synth/ dir must hold no files"
+
+
+def test_uvm_f4pga_output_identical_to_default():
+    with tempfile.TemporaryDirectory() as tmp:
+        default_proj, _ = _generate_uvm(str(Path(tmp) / "default"), [])
+        f4pga_proj, out = _generate_uvm(str(Path(tmp) / "f4pga"),
+                                        ["--backend", "f4pga"])
+        assert "applies only to SV+board generation" in out
+        assert _tree_bytes(default_proj) == _tree_bytes(f4pga_proj), \
+            "UVM output must be byte-identical with and without --backend f4pga"
+
+
 if __name__ == "__main__":
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]
-    failed = 0
+    passed = failed = skipped = 0
     for name, fn in tests:
         try:
             fn()
+            passed += 1
             print("PASS " + name)
-        except AssertionError as exc:
+        except SkipTest as exc:
+            skipped += 1
+            print("SKIP " + name + ": " + str(exc))
+        except Exception as exc:
             failed += 1
             print("FAIL " + name + ": " + str(exc))
-    print("%d/%d tests passed" % (len(tests) - failed, len(tests)))
+    print("%d/%d tests passed" % (passed, len(tests)))
     sys.exit(1 if failed else 0)

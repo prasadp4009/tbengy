@@ -213,6 +213,8 @@ python3 tbengy.py -m zyboBlink -d ../myProj/ -b zybo -f xc7z010clg400-1 -t sv --
 - Prerequisites: F4PGA installed for the xc7 family (https://f4pga.readthedocs.io/en/latest/getting-started.html), with F4PGA_INSTALL_DIR set and the xc7 conda environment activated in the shell running make -- both `make synth` and `make program` need it.
 - Limitations: EXPERIMENTAL and PL-only -- no PS7 configuration, FSBL or boot image is generated, and timing is indicative only (no Vivado-equivalent STA sign-off). The device mapping is tuned for xc7z010 (Zybo). Simulation still uses the Vivado xsim commands, unchanged. Validated end-to-end (generation -> bitstream -> JTAG load -> blinking LED) on the original Zybo in Oct 2026. See the generated project's README.md for full details.
 
+- Self-check: `python3 tests/selfcheck.py` runs the full test suite in `tests/` (see `tests/README.md`).
+
 Contact me on prasadp4009@gmail.com for any questions.
 
 Hope the tool helps. Thanks!
