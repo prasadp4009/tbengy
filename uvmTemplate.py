@@ -1546,24 +1546,24 @@ gitignore = """\
 # F4PGA backend templates (tbengy --backend f4pga). EXPERIMENTAL, PL-only.
 # Added for the F4PGA backend MVP; the Vivado templates above are unchanged.
 # NOTE: these strings are rendered with str.format(), so they must not
-# contain curly braces other than the documented {0}..{3} placeholders.
+# contain curly braces other than the documented {0}..{2} placeholders.
 # Make variables therefore use the $(VAR) form, never the dollar-brace form.
 # ---------------------------------------------------------------------------
 
 f4pgaCommandStr="""\
 # ---------------------------------------------------------------------------
-# F4PGA backend (EXPERIMENTAL, PL-only): synthesis is delegated to the
-# generated f4pga.mk flow in this directory. See README.md for limitations.
-# OFL_BOARD is the openFPGALoader board name. zybo_z7_10 is the closest
-# upstream entry; JTAG loading on the original Zybo is UNTESTED.
+# F4PGA backend (EXPERIMENTAL, PL-only): synthesis and programming are
+# both delegated to the generated f4pga.mk flow in this directory, so the
+# bitstream path and the openFPGALoader board name (OFL_BOARD, defined
+# in f4pga.mk, overridable e.g. `make program OFL_BOARD=...`) live in
+# exactly one place. Both targets need the F4PGA environment active
+# (see README.md); `make program` uses the conda env's openFPGALoader.
 # ---------------------------------------------------------------------------
-OFL_BOARD ?= zybo_z7_10
-
 synth:
 	$(MAKE) -f f4pga.mk all
 
 program:
-	openFPGALoader -b $(OFL_BOARD) ../synth/{2}.bit
+	$(MAKE) -f f4pga.mk program
 """
 
 f4pgaFlowStr="""\
@@ -1600,15 +1600,21 @@ TOP              ?= {2}
 DEVICE           ?= xc7z010_test
 FAMILY           ?= zynq7
 BITSTREAM_DEVICE ?= zynq7
+# OFL_BOARD is the openFPGALoader board name used by the program target.
+# zybo_z7_10 is the closest upstream entry; JTAG loading with it was
+# verified on the original Zybo (generated LED-blink demo, Oct 2026).
+OFL_BOARD        ?= zybo_z7_10
 
 # --- Files (paths are relative to this file's directory, scripts/)
 RTL_SOURCES ?= ../rtl/*.sv
 XDC_FILE    ?= {1}.xdc
 SDC_FILE    ?= {2}.sdc
 BUILD_DIR   ?= ../synth
-CLK_PERIOD_NS ?= {3}
+# NOTE: the clock period constraint lives in $(SDC_FILE) (create_clock),
+# which tbengy generates from the clock frequency recorded in the board
+# XDC. There is deliberately no second copy of the period in this file.
 
-.PHONY: all clean
+.PHONY: all clean program
 all: $(BUILD_DIR)/$(TOP).bit
 
 # Synthesis (Yosys via symbiflow_synth): RTL + XDC -> .eblif
@@ -1639,6 +1645,14 @@ $(BUILD_DIR)/$(TOP).fasm: $(BUILD_DIR)/$(TOP).route
 $(BUILD_DIR)/$(TOP).bit: $(BUILD_DIR)/$(TOP).fasm
 	cd $(BUILD_DIR) && symbiflow_write_bitstream -d $(BITSTREAM_DEVICE) -f $(TOP).fasm -p $(PARTNAME) -b $(TOP).bit
 
+# Program the board (volatile JTAG SRAM load via openFPGALoader; no
+# flash is written). Needs the F4PGA environment active -- openFPGALoader
+# ships in the xc7 conda env. NOTE: if Vivado hw_server is running it
+# holds the board's FTDI cable and this fails with "unable to claim usb
+# device"; stop hw_server first.
+program: $(BUILD_DIR)/$(TOP).bit
+	openFPGALoader -b $(OFL_BOARD) $(BUILD_DIR)/$(TOP).bit
+
 clean:
 	rm -f $(BUILD_DIR)/$(TOP).eblif $(BUILD_DIR)/$(TOP).net $(BUILD_DIR)/$(TOP).place $(BUILD_DIR)/$(TOP).route $(BUILD_DIR)/$(TOP).fasm $(BUILD_DIR)/$(TOP).bit
 """
@@ -1659,17 +1673,24 @@ readmeF4pgaMD = """\
 toolchain (Yosys + VPR + prjxray) instead of Vivado.
 
 ### Warnings / limitations
-- EXPERIMENTAL: the F4PGA backend is an MVP and is not yet validated
-  end-to-end on hardware.
+- EXPERIMENTAL: the F4PGA backend is an MVP. It is validated
+  end-to-end (generation -> bitstream -> JTAG load -> running design)
+  for the generated LED-blink example on the original Zybo
+  (xc7z010); other designs and boards are not yet validated.
 - PL-only: this flow builds a bitstream for the programmable logic
   only. It generates NO PS7 configuration, NO FSBL and NO boot image.
   Designs that need the Zynq PS (AXI, DDR via PS, ARM software) still
   need a Vivado/Vitis-generated PS/boot setup.
 - Timing is indicative only: VPR reports timing estimates, but there
   is no Vivado-equivalent static timing analysis (STA) sign-off.
-- Programming uses openFPGALoader with OFL_BOARD defaulting to
-  zybo_z7_10 (see scripts/Makefile). JTAG loading on the original
-  Zybo is UNTESTED.
+- Programming uses openFPGALoader (the `program` target in
+  scripts/f4pga.mk, reached via `make program`) with OFL_BOARD
+  defaulting to zybo_z7_10. JTAG loading with that board entry was
+  verified on the original Zybo; the load is a volatile SRAM load
+  only (no flash is written).
+- The generated .sdc assumes the top-level clock port is named
+  `clk` (true for the generated SV example top). If your top uses
+  a different clock port name, edit synth/{0}.sdc accordingly.
 - The board XDC in synth/ is the original Digilent master XDC for
   this board (for the Zybo: clock on L16). Only the pin/IOSTANDARD
   subset of XDC is consumed by the F4PGA synthesis step; timing
@@ -1705,11 +1726,14 @@ cd scripts
 make synth
 ```
 This runs the flow in f4pga.mk and produces synth/{0}.bit.
-### To program the board (openFPGALoader, UNTESTED on original Zybo)
+### To program the board (openFPGALoader)
 ```bash
 cd scripts
 make program
 ```
+This needs the F4PGA environment above active (openFPGALoader ships
+in the xc7 conda env), and it fails if Vivado hw_server is running
+and holding the board's FTDI cable -- stop hw_server first.
 ### Directory Structure
 ```
 {0}
@@ -1731,3 +1755,11 @@ make program
 ```
 **Note** : .gitignore is added to project directory for easy git integration.
 """
+
+# Generated-project .gitignore for F4PGA projects: the same whitelist as
+# the default `gitignore`, plus the F4PGA source files a generated project
+# must keep under version control (f4pga.mk, the generated .sdc, the board
+# .xdc). F4PGA build artifacts (.eblif/.net/.place/.route/.fasm/.bit and
+# VPR logs/reports) stay ignored via the leading `*`, exactly like Vivado
+# build artifacts in the default flow.
+gitignoreF4pga = gitignore + "!f4pga.mk\n!*.sdc\n!*.xdc\n"

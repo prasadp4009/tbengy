@@ -49,7 +49,7 @@ from uvmTemplate import agntCfg, agntPkg, baseSeq, baseTest, envPkg, gitignore, 
                         readmeMD, readmeSVMD, regsPkg, rtlModule, rtlSVModule, sanitySeq, sanityTest, seqItem,     \
                         seqPkg, svIntf, tbModule, tbSVModule, testPkg, uvmAgnt, uvmCov, uvmDrv, uvmEnv, uvmMon,    \
                         uvmSb, uvmSeqr, xsimWaveTclStr, synthCommandStr, synthTclStr, rtlSVExModule, tbSVExModule, \
-                        readmeSVEXMD, f4pgaCommandStr, f4pgaFlowStr, f4pgaSdcStr, readmeF4pgaMD
+                        readmeSVEXMD, f4pgaCommandStr, f4pgaFlowStr, f4pgaSdcStr, readmeF4pgaMD, gitignoreF4pga
 
 toolVersion = "tbengy v2"
 moduleName = "na"
@@ -209,16 +209,17 @@ def mod_gen():
     }
     if backendName == "f4pga":
       if not fpgaName.startswith("xc7z010"):
-        print("[tbengy] Warning: --backend f4pga MVP flow is tuned for xc7z010 parts (DEVICE=xc7z010_test mapping at the top of f4pga.mk). Generating anyway for part: "+fpgaName)
+        print("[tbengy] Warning: --backend f4pga MVP flow is tuned for xc7z010 parts (the DEVICE/FAMILY/BITSTREAM_DEVICE mapping at the top of f4pga.mk is xc7z010_test/zynq7). Generating anyway for part: "+fpgaName)
       try:
         clkPeriodNs = "{:.3f}".format(1000.0/float(clkFreq))
       except (TypeError, ValueError):
         clkPeriodNs = "8.000"
       tmplDict["Makefile"] = ["scripts", "Makefile", makefileSVStr+f4pgaCommandStr, [username,today,moduleName]]
       del tmplDict["Synth Tcl"]
-      tmplDict["F4PGA Flow"] = ["scripts", "f4pga.mk", f4pgaFlowStr, [fpgaName, boardFileName.replace(".xdc",""), moduleName, clkPeriodNs]]
+      tmplDict["F4PGA Flow"] = ["scripts", "f4pga.mk", f4pgaFlowStr, [fpgaName, boardFileName.replace(".xdc",""), moduleName]]
       tmplDict["F4PGA SDC"] = ["synth", moduleName+".sdc", f4pgaSdcStr, [moduleName, clkPeriodNs]]
       tmplDict["Readme"] = ["readmeMD", "README.md", readmeF4pgaMD, [moduleName, boardFileName.replace(".xdc","")]]
+      tmplDict["Gitignore"] = ["gitignore", ".gitignore", gitignoreF4pga, []]
   else:
     dirDict = {
       moduleName      : dirPath+moduleName,
@@ -284,7 +285,7 @@ def parserSetup():
   parser.add_argument('-f', '--fpga', nargs=1, metavar='<fpga>', required=False,
                       type=str, help="FPGA used in board. Ex. -f xc7z010clg400-1, -f xc7a100tcsg324-1, -f xc7z010clg400-1 etc. for Zybo, Nexys 4 DDR and Zybo-Z7-10 respectively")
   parser.add_argument('--backend', nargs=1, metavar='<backend>', required=False,
-                      type=str, default=['vivado'], choices=['vivado', 'f4pga'], help="Synthesis backend for board projects. Ex. --backend vivado (default) or --backend f4pga (experimental, PL-only)")
+                      type=str, default=['vivado'], choices=['vivado', 'f4pga'], help="Synthesis backend for SV board projects (-t sv with -b/-f). Ex. --backend vivado (default) or --backend f4pga (experimental, PL-only)")
   parser.add_argument('-d', '--dirpath', nargs=1, metavar='<dir_path>',
                       type=str, help="Directory under which TB should be generated. Ex. -d ./myProjects/TB. Default is present working dir.")
   return parser.parse_args()
@@ -360,7 +361,7 @@ def main():
       print("[tbengy] Warning: --backend f4pga applies only to SV+board generation (-t sv with -b/-f). Proceeding with default generation for this project type.")
     print("[tbengy] TB Directory: "+dirPath)
     if backendName == "f4pga":
-      f4pgaTools = ["symbiflow_synth", "f4pga", "yosys"]
+      f4pgaTools = ["symbiflow_synth", "symbiflow_pack", "symbiflow_place", "symbiflow_route", "symbiflow_write_fasm", "symbiflow_write_bitstream", "openFPGALoader"]
       missingTools = [tool for tool in f4pgaTools if shutil.which(tool) is None]
       if missingTools:
         print("[tbengy] Warning: F4PGA tool(s) not found in Path variables: " + ", ".join(missingTools) + ". Makefile (F4PGA flow) won't work correctly. Please install F4PGA, set F4PGA_INSTALL_DIR and activate the xc7 conda environment")
