@@ -151,6 +151,31 @@ def test_second_module_and_board_alignment():
         assert "10.000" in sdc2, "Basys3 100 MHz clock -> 10.000 ns period"
 
 
+def test_probe_follows_engagement():
+    # --backend f4pga with a UVM project does NOT engage the F4PGA flow:
+    # the "applies only" warning must fire and the tool probe must be
+    # the Vivado one (matching the default generation that follows),
+    # not the F4PGA one.
+    import os
+    with tempfile.TemporaryDirectory() as tmp:
+        empty_bin = Path(tmp) / "emptybin"
+        empty_bin.mkdir()
+        env = dict(os.environ)
+        env["PATH"] = str(empty_bin)
+        dest = Path(tmp) / "gen"
+        dest.mkdir()
+        cmd = [sys.executable, str(TBENGY), "-m", "u1", "-t", "uvm",
+               "--backend", "f4pga", "-d", str(dest)]
+        proc = subprocess.run(cmd, cwd=str(REPO_ROOT), env=env,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT,
+                              universal_newlines=True)
+        assert proc.returncode == 0, proc.stdout
+        assert "applies only to SV+board generation" in proc.stdout
+        assert "F4PGA tool(s) not found" not in proc.stdout
+        assert "No Vivado found" in proc.stdout
+
+
 if __name__ == "__main__":
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]

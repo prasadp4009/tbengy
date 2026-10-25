@@ -357,10 +357,11 @@ def main():
     if args.backend:
       backendName = args.backend[0]
     print("[tbengy] Backend Selected: "+backendName)
-    if backendName == "f4pga" and not (tbType == "sv" and boardName != ""):
+    f4pgaApplies = (backendName == "f4pga" and tbType == "sv" and boardName != "")
+    if backendName == "f4pga" and not f4pgaApplies:
       print("[tbengy] Warning: --backend f4pga applies only to SV+board generation (-t sv with -b/-f). Proceeding with default generation for this project type.")
     print("[tbengy] TB Directory: "+dirPath)
-    if backendName == "f4pga":
+    if f4pgaApplies:
       f4pgaTools = ["symbiflow_synth", "symbiflow_pack", "symbiflow_place", "symbiflow_route", "symbiflow_write_fasm", "symbiflow_write_bitstream", "openFPGALoader"]
       missingTools = [tool for tool in f4pgaTools if shutil.which(tool) is None]
       if missingTools:
