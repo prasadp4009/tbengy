@@ -1,5 +1,5 @@
 # tbengy v2
-**tbengy** Python Tool for SV/UVM Testbench Generation and RTL Synthesis. The tool uses newly available capability of **Vivado tool by Xilinx (WebPack Version)** to compile and run SV/UVM Testbench and syntheize RTL for Digilent FPGA Boards
+**tbengy** Python Tool for SV/UVM Testbench Generation and RTL Synthesis. The tool uses newly available capability of **Vivado tool by Xilinx (WebPack Version)** to compile and run SV/UVM Testbench and syntheize RTL for Digilent FPGA Boards. Synthesis runs on Vivado by default, or on the experimental open-source F4PGA backend (`--backend f4pga`)
 
 # Used in Industry
 
@@ -12,7 +12,7 @@
 * Python 3.x
 * Xilinx Vivado 202x.x
 * GNU Make
-* F4PGA (xc7 family) -- only for projects generated with `--backend f4pga`
+* F4PGA (xc7 family, VPR flow) and openFPGALoader -- only for projects generated with `--backend f4pga`
 
 # Setup Instructions
 ### 1. Python 3.x.x
@@ -114,22 +114,31 @@ python3 tbengy.py -h
 ```
 You should get the following output
 ```
-usage: tbengy.py [-h] [-v] (-l | -m <module_name>) [-t <tb_type>] [-b <board_type>] [-f <fpga>] [--backend <backend>] [-d <dir_path>]
-optional arguments:
+usage: tbengy.py [-h] [-v] (-l | -m <module_name>) [-t <tb_type>]
+                 [-b <board_type>] [-f <fpga>] [--backend <backend>]
+                 [-d <dir_path>]
+
+options:
   -h, --help            show this help message and exit
   -v, --version         Show tbengy version and exit
   -l, --listboards      Show the list of available boards and exit
-  -m <module_name>, --modulename <module_name>
-                        Module name for which TB to be generated. Ex. -m my_design
-  -t <tb_type>, --tbtype <tb_type>
+  -m, --modulename <module_name>
+                        Module name for which TB to be generated. Ex. -m
+                        my_design
+  -t, --tbtype <tb_type>
                         Testbench type to be generated. Ex. -t uvm or -t sv
-  -b <board_type>, --boardtype <board_type>
-                        Board Files to be added. Ex. -b zybo, -b nexys4_ddr, -b zybo-z7 etc.
-  -f <fpga>, --fpga <fpga>
-                        FPGA used in board. Ex. -f xc7z010clg400-1, -f xc7a100tcsg324-1, -f xc7z010clg400-1 etc. for Zybo, Nexys 4 DDR and Zybo-Z7-10 respectively
-  --backend <backend>   Synthesis backend for SV board projects (-t sv with -b/-f). Ex. --backend vivado (default) or --backend f4pga (experimental, PL-only)
-  -d <dir_path>, --dirpath <dir_path>
-                        Directory under which TB should be generated. Ex. -d ./myProjects/TB. Default is present working dir.
+  -b, --boardtype <board_type>
+                        Board Files to be added. Ex. -b zybo, -b nexys4_ddr,
+                        -b zybo-z7 etc.
+  -f, --fpga <fpga>     FPGA used in board. Ex. -f xc7z010clg400-1, -f
+                        xc7a100tcsg324-1, -f xc7z010clg400-1 etc. for Zybo,
+                        Nexys 4 DDR and Zybo-Z7-10 respectively
+  --backend <backend>   Synthesis backend for SV board projects (-t sv with
+                        -b/-f). Ex. --backend vivado (default) or --backend
+                        f4pga (experimental, PL-only)
+  -d, --dirpath <dir_path>
+                        Directory under which TB should be generated. Ex. -d
+                        ./myProjects/TB. Default is present working dir.
 ```
 - Enter you module name with '-m <module_name>', the tool will generate a complete UVM testbench (default tb_type is UVM)
 ```
@@ -210,10 +219,10 @@ Note: You can have multiple boards connected to system. Do make sure the boards 
 python3 tbengy.py -m zyboBlink -d ../myProj/ -b zybo -f xc7z010clg400-1 -t sv --backend f4pga
 ```
 - The generated project then contains scripts/f4pga.mk (Yosys + VPR + prjxray, driven through the symbiflow_* wrappers) and synth/<module>.sdc instead of scripts/synth.tcl. In the generated project, `make synth` builds synth/<module>.bit and `make program` loads it onto the board with openFPGALoader.
-- Prerequisites: F4PGA installed for the xc7 family (https://f4pga.readthedocs.io/en/latest/getting-started.html), with F4PGA_INSTALL_DIR set and the xc7 conda environment activated in the shell running make -- both `make synth` and `make program` need it.
+- Prerequisites: F4PGA installed for the xc7 family (https://f4pga.readthedocs.io/en/latest/getting-started.html), with F4PGA_INSTALL_DIR set, the xc7 conda environment activated and the F4PGA install bin directory on PATH in the shell running make -- both `make synth` and `make program` need it.
 - Limitations: EXPERIMENTAL and PL-only -- no PS7 configuration, FSBL or boot image is generated, and timing is indicative only (no Vivado-equivalent STA sign-off). The device mapping is tuned for xc7z010 (Zybo). Simulation still uses the Vivado xsim commands, unchanged. Validated end-to-end (generation -> bitstream -> JTAG load -> blinking LED) on the original Zybo in Oct 2026. See the generated project's README.md for full details.
 
-- Self-check: `python3 tests/selfcheck.py` runs the full test suite in `tests/` (see `tests/README.md`).
+- Self-check: `python3 tests/selfcheck.py` runs the full test suite in `tests/` (see `tests/README.md`); the heavy end-to-end toolchain builds are opt-in via `python3 tests/selfcheck.py --e2e`.
 
 Contact me on prasadp4009@gmail.com for any questions.
 
